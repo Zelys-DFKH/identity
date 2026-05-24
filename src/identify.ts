@@ -5,6 +5,7 @@ import type {
   IdentityClassification,
 } from "./types";
 import { calculateNormalizedShannonsEntropy } from "./utils";
+import { analyzeCommitMetadata } from "./commit-metadata";
 import { CONFIG } from "./config";
 import dayjs from "dayjs";
 import minMax from "dayjs/plugin/minMax";
@@ -18,6 +19,7 @@ export function identify({
   reposCount,
   accountName,
   events,
+  commits = [],
   excludeRepos = [],
 }: IdentifyOptions): IdentifyResult {
   const flags: IdentifyFlag[] = [];
@@ -28,6 +30,9 @@ export function identify({
     const repoName = e.repo?.name?.toLowerCase();
     return repoName && !excludeReposLower.includes(repoName);
   });
+  const filteredCommits = commits.filter(
+    (c) => !c.repo || !excludeReposLower.includes(c.repo.toLowerCase()),
+  );
 
   const accountAge = dayjs().diff(createdAt, "days");
 
@@ -332,7 +337,7 @@ export function identify({
                 (item.event.payload as any)?.pull_request?.number ||
                 (item.event.payload as any)?.number ||
                 (item.event as any)?.issue?.number;
-              
+
               // Return repo#prNumber if available, otherwise just repo name
               if (repoName && prNumber) {
                 return `${repoName}#${prNumber}`;
@@ -378,6 +383,21 @@ export function identify({
         });
       }
     }
+  }
+
+  // AI commit attribution — amplifies the score from other flags rather than adding points directly
+  const commitMetadata = analyzeCommitMetadata(filteredCommits);
+  console.log(commitMetadata)
+  const aiMultiplierActive =
+    commitMetadata.totalCommits >= CONFIG.AI_COMMIT_MIN_COMMITS &&
+    commitMetadata.ratio >= CONFIG.AI_COMMIT_RATIO_EXTREME;
+  if (aiMultiplierActive) {
+    const { ratio, aiCommits, totalCommits } = commitMetadata;
+    flags.push({
+      label: "Predominantly AI-attributed commits",
+      points: 0,
+      detail: `${aiCommits}/${totalCommits} commits (${Math.round(ratio * 100)}%) AI-attributed — ${CONFIG.AI_COMMIT_MULTIPLIER}x multiplier applied to other signals`,
+    });
   }
 
   // Temporal branch→PR correlation (automated CI/CD workflow detection)
@@ -1021,27 +1041,27 @@ export function identify({
           const prTimestamps = allPREvents
             .map((e) => dayjs(e.created_at))
             .sort((a, b) => a.valueOf() - b.valueOf());
-          
+
           const earliestPR = prTimestamps[0];
           const latestPR = prTimestamps[prTimestamps.length - 1];
           const timeSpanDays = latestPR ? latestPR.diff(earliestPR, "days", true) : 0;
           const timeSpanWeeks = timeSpanDays / 7;
-          
+
           // Calculate density: PRs per week
           const prsPerWeek = timeSpanWeeks > 0 ? allPREvents.length / timeSpanWeeks : Infinity;
-          
+
           // Check rolling 30-day window
           const thirtyDaysAgo = dayjs().subtract(30, "days");
           const prsInLast30Days = allPREvents.filter(
             (e) => dayjs(e.created_at).isAfter(thirtyDaysAgo)
           ).length;
-          
+
           // Flag if either:
           // 1. High density (PRs per week exceeds threshold), OR
           // 2. Rolling 30-day window has excessive volume
           const isHighDensity = prsPerWeek >= CONFIG.PRS_SPAM_DENSITY_PER_WEEK;
           const isRolling30DaySpam = prsInLast30Days >= CONFIG.PRS_SPAM_ROLLING_30DAYS;
-          
+
           if (isHighDensity || isRolling30DaySpam) {
             flags.push({
               label: "Distributed PR spam pattern",
@@ -1055,7 +1075,8 @@ export function identify({
   }
 
   // Invert score: 100 = human, 0 = bot
-  const score = flags.reduce((total, flag) => (total += flag.points), 0);
+  const rawScore = flags.reduce((total, flag) => (total += flag.points), 0);
+  const score = aiMultiplierActive ? Math.round(rawScore * CONFIG.AI_COMMIT_MULTIPLIER) : rawScore;
   const humanScore = Math.max(0, 100 - score);
 
   // Classification based on inverted score

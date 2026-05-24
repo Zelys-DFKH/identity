@@ -166,4 +166,10 @@ export const CONFIG = {
   BRANCH_PR_PATTERN_RATIO_MIN_ESTABLISHED: 0.8, // stricter ratio for established (80%)
   BRANCH_PR_COUNT_RATIO_MIN: 0.65, // branches/PRs ratio must be >= this (low ratio = legitimate dev with many unrelated PRs)
   POINTS_BRANCH_PR_AUTOMATION: 35, // strong automation indicator
+
+  // AI commit metadata — amplifier, not a standalone signal
+  // At >= AI_COMMIT_RATIO_EXTREME, the final flag-point total is multiplied
+  AI_COMMIT_MIN_COMMITS: 5,
+  AI_COMMIT_RATIO_EXTREME: 0.9,
+  AI_COMMIT_MULTIPLIER: 1.5,
 } as const;

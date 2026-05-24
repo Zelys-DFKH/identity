@@ -2,6 +2,12 @@ import type { Endpoints } from "@octokit/types";
 
 export type GitHubUser = Endpoints["GET /users/{username}"]["response"]["data"];
 
+export type GitHubCommit = {
+  sha?: string;
+  message?: string;
+  repo?: string;
+};
+
 export type GitHubEvent =
   Endpoints["GET /users/{username}/events/public"]["response"]["data"][number] & {
     payload?: {
@@ -21,6 +27,7 @@ export type IdentifyOptions = {
   reposCount: number;
   accountName: string;
   events: GitHubEvent[];
+  commits?: GitHubCommit[];
   excludeRepos?: string[];
 };
 
