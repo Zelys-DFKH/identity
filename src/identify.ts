@@ -387,7 +387,7 @@ export function identify({
 
   // AI commit attribution — amplifies the score from other flags rather than adding points directly
   const commitMetadata = analyzeCommitMetadata(filteredCommits);
-  console.log(commitMetadata)
+
   const aiMultiplierActive =
     commitMetadata.totalCommits >= CONFIG.AI_COMMIT_MIN_COMMITS &&
     commitMetadata.ratio >= CONFIG.AI_COMMIT_RATIO_EXTREME;
