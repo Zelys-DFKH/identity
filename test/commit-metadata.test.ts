@@ -4,7 +4,7 @@ import {
   analyzeCommitMetadata,
 } from "../src/commit-metadata";
 import { identify } from "../src/identify";
-import type { GitHubCommit } from "../src/types";
+import type { GitHubCommit, GitHubEvent } from "../src/types";
 
 const date = new Date(2026, 2, 10, 12);
 
@@ -190,6 +190,15 @@ describe("identify - AI commit metadata flag", () => {
     });
   }
 
+  // Builds 6 forks within 24h → triggers "Multiple forks" (26 points, amplifiable).
+  function makeForkBurstEvents(): GitHubEvent[] {
+    return Array.from({ length: 6 }, (_, i) => ({
+      type: "ForkEvent",
+      created_at: new Date(date.getTime() - i * 3600_000).toISOString(),
+      repo: { name: `target/repo${i}` } as any,
+    } as any));
+  }
+
   it("pushes a 0-point visibility flag at >= 90% AI ratio", () => {
     const result = runWithCommits([
       ...makeAICommits(9),
@@ -200,11 +209,11 @@ describe("identify - AI commit metadata flag", () => {
     );
     expect(flag).toBeDefined();
     expect(flag?.points).toBe(0);
-    expect(flag?.detail).toMatch(/9\/10 commits \(90%\).*1\.5x multiplier/);
+    expect(flag?.detail).toMatch(/9\/10 commits \(90%\)/);
   });
 
   it.each<[number, number]>([
-    [8, 2], // 80% — below extreme threshold
+    [7, 3], // 70% — below lowest (75%) tier
     [4, 6], // 40%
     [2, 8], // 20%
   ])("does not flag %i AI / %i human commits", (ai, human) => {
@@ -224,9 +233,44 @@ describe("identify - AI commit metadata flag", () => {
     ).toBe(false);
   });
 
-  it("amplifies the score of other flags by 1.5x when active", () => {
+  it.each<[number, number, number, number]>([
+    // [aiCount, humanCount, expectedMultiplier, expectedAmplifiedPoints]
+    [15, 5, 1.15, 30], // 75% tier → 26 * 1.15 = 29.9 → 30
+    [17, 3, 1.3, 34], // 85% tier → 26 * 1.3 = 33.8 → 34
+    [18, 2, 1.5, 39], // 90% tier → 26 * 1.5 = 39
+  ])(
+    "applies %s tier multiplier (%i AI / %i human) to amplifiable flags",
+    (ai, human, multiplier, expected) => {
+      const events = makeForkBurstEvents();
+      const commits = [...makeAICommits(ai), ...makeHumanCommits(human)];
+
+      const withCommits = identify({
+        createdAt: "2025-01-01T00:00:00Z",
+        reposCount: 10,
+        accountName: "user",
+        events,
+        commits,
+      });
+      const withoutCommits = identify({
+        createdAt: "2025-01-01T00:00:00Z",
+        reposCount: 10,
+        accountName: "user",
+        events,
+      });
+
+      expect(withoutCommits.score).toBe(100 - 26); // 74
+      expect(withCommits.score).toBe(100 - expected);
+
+      const flag = withCommits.flags.find(
+        (f) => f.label === "Predominantly AI-attributed commits",
+      );
+      expect(flag?.detail).toContain(`${multiplier}x multiplier applied to automation signals`);
+    },
+  );
+
+  it("does NOT amplify non-spam flags (account age, diversity, etc.)", () => {
     const commits = [...makeAICommits(9), ...makeHumanCommits(1)];
-    // 14-day-old account triggers "Recently created" (20 points)
+    // 14-day-old account triggers "Recently created" (20 points) — not amplifiable.
     const withMultiplier = identify({
       createdAt: new Date(date.getTime() - 14 * 86400000).toISOString(),
       reposCount: 10,
@@ -240,15 +284,20 @@ describe("identify - AI commit metadata flag", () => {
       accountName: "user",
       events: [],
     });
-    // 20 base points × 1.5 = 30 → humanScore 70 vs unmultiplied 80
+    // Both should be 80 — multiplier must not touch "Recently created".
     expect(withoutMultiplier.score).toBe(80);
-    expect(withMultiplier.score).toBe(70);
+    expect(withMultiplier.score).toBe(80);
   });
 
-  it("does not amplify when no other flags are present", () => {
+  it("still shows informational flag when no amplifiable signals exist", () => {
     const commits = [...makeAICommits(9), ...makeHumanCommits(1)];
     const result = runWithCommits(commits);
     expect(result.score).toBe(100);
+    const flag = result.flags.find(
+      (f) => f.label === "Predominantly AI-attributed commits",
+    );
+    expect(flag).toBeDefined();
+    expect(flag?.detail).toContain("no automation signals to amplify");
   });
 
   it("respects excludeRepos for commits", () => {

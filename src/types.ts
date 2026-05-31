@@ -20,6 +20,7 @@ export type IdentifyFlag = {
   label: string;
   points: number;
   detail: string;
+  amplifiable?: boolean;
 };
 
 export type IdentifyOptions = {

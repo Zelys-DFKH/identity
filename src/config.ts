@@ -84,12 +84,12 @@ export const CONFIG = {
   POINTS_PRS_WEEK_EXTREME: 50,
   PRS_WEEK_VERY_HIGH: 50, // >= this PRs in 7 days = very high weekly spam
   POINTS_PRS_WEEK_VERY_HIGH: 40,
-  
+
   // Distributed PR spam (high PR count + many repos)
   PRS_SPAM_VOLUME: 50, // PR count threshold for combined check
   REPOS_SPAM_SPREAD: 15, // repos threshold for combined check
   POINTS_PR_SPAM_COMBINED: 45, // for combined high PR + repo spread
-  
+
   // Distributed PR spam density guards (prevent flagging long-term contributors)
   PRS_SPAM_DENSITY_PER_WEEK: 15, // >= this PRs/week = suspicious density (distributed spam)
   PRS_SPAM_ROLLING_30DAYS: 60, // >= this PRs in last 30 days + meets repo spread = flag
@@ -168,8 +168,12 @@ export const CONFIG = {
   POINTS_BRANCH_PR_AUTOMATION: 35, // strong automation indicator
 
   // AI commit metadata — amplifier, not a standalone signal
-  // At >= AI_COMMIT_RATIO_EXTREME, the final flag-point total is multiplied
+  // Multiplier applies only to flags marked `amplifiable: true` (automation/spam signals).
+  // Tiers are evaluated highest-first; the first matching ratio wins.
   AI_COMMIT_MIN_COMMITS: 5,
-  AI_COMMIT_RATIO_EXTREME: 0.9,
-  AI_COMMIT_MULTIPLIER: 1.5,
+  AI_COMMIT_TIERS: [
+    { ratio: 0.9, multiplier: 1.5 },
+    { ratio: 0.85, multiplier: 1.3 },
+    { ratio: 0.75, multiplier: 1.15 },
+  ],
 } as const;

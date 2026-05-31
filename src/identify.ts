@@ -101,12 +101,14 @@ export function identify({
           label: "Concentrated repository creation",
           points: CONFIG.POINTS_CREATE_BURST_EXTREME,
           detail: `${maxCreatesInWindow} repositories created in a short timeframe (within 24 hours)`,
+          amplifiable: true,
         });
       } else if (maxCreatesInWindow >= CONFIG.CREATE_BURST_HIGH) {
         flags.push({
           label: "Frequent repository creation",
           points: CONFIG.POINTS_CREATE_BURST_HIGH,
           detail: `${maxCreatesInWindow} repositories created in a short timeframe (within 24 hours)`,
+          amplifiable: true,
         });
       }
     }
@@ -281,6 +283,7 @@ export function identify({
           label: "Issue comment spam",
           points: CONFIG.POINTS_ISSUE_COMMENT_SPRAY_EXTREME,
           detail: `${commentsInWindow} comments to ${maxDistinctReposInWindow} different repos in just ${timeSpanMinutes} minute${timeSpanMinutes === 1 ? "" : "s"}`,
+          amplifiable: true,
         });
       } else if (maxDistinctReposInWindow >= CONFIG.ISSUE_COMMENT_SPRAY_HIGH) {
         const windowStart = commentTimestamps[maxReposWindowStartIdx]?.time;
@@ -294,6 +297,7 @@ export function identify({
           label: "High comment frequency across repos",
           points: CONFIG.POINTS_ISSUE_COMMENT_SPRAY_HIGH,
           detail: `${commentsInWindow} comments to ${maxDistinctReposInWindow} different repos in just ${timeSpanMinutes} minute${timeSpanMinutes === 1 ? "" : "s"}`,
+          amplifiable: true,
         });
       }
     }
@@ -367,6 +371,7 @@ export function identify({
           label: "PR comment spam",
           points: CONFIG.POINTS_PR_COMMENT_SPRAY_EXTREME,
           detail: `${commentsInWindow} comments on ${maxDistinctPRsInWindow} different PRs in just ${timeSpanMinutes} minute${timeSpanMinutes === 1 ? "" : "s"}`,
+          amplifiable: true,
         });
       } else if (maxDistinctPRsInWindow >= CONFIG.PR_COMMENT_SPRAY_HIGH) {
         const windowStart = prCommentTimestamps[maxPRsWindowStartIdx]?.time;
@@ -380,25 +385,19 @@ export function identify({
           label: "High PR comment frequency",
           points: CONFIG.POINTS_PR_COMMENT_SPRAY_HIGH,
           detail: `${commentsInWindow} comments on ${maxDistinctPRsInWindow} different PRs in just ${timeSpanMinutes} minute${timeSpanMinutes === 1 ? "" : "s"}`,
+          amplifiable: true,
         });
       }
     }
   }
 
-  // AI commit attribution — amplifies the score from other flags rather than adding points directly
+  // AI commit attribution — informational flag is pushed at end (after we know which
+  // amplifiable flags exist). Compute tier here so we can apply per-flag multiplication.
   const commitMetadata = analyzeCommitMetadata(filteredCommits);
-
-  const aiMultiplierActive =
-    commitMetadata.totalCommits >= CONFIG.AI_COMMIT_MIN_COMMITS &&
-    commitMetadata.ratio >= CONFIG.AI_COMMIT_RATIO_EXTREME;
-  if (aiMultiplierActive) {
-    const { ratio, aiCommits, totalCommits } = commitMetadata;
-    flags.push({
-      label: "Predominantly AI-attributed commits",
-      points: 0,
-      detail: `${aiCommits}/${totalCommits} commits (${Math.round(ratio * 100)}%) AI-attributed — ${CONFIG.AI_COMMIT_MULTIPLIER}x multiplier applied to other signals`,
-    });
-  }
+  const aiTier =
+    commitMetadata.totalCommits >= CONFIG.AI_COMMIT_MIN_COMMITS
+      ? CONFIG.AI_COMMIT_TIERS.find((t) => commitMetadata.ratio >= t.ratio)
+      : undefined;
 
   // Temporal branch→PR correlation (automated CI/CD workflow detection)
   // Detects pattern: branch created, PR submitted within short window, repeatedly
@@ -471,6 +470,7 @@ export function identify({
             label: "Automated branch/PR workflow",
             points: CONFIG.POINTS_BRANCH_PR_AUTOMATION,
             detail: `${matchedPairs}/${branchCreates.length} branch creations followed by PRs within ${maxObservedTimeDiff}s`,
+            amplifiable: true,
           });
         }
       }
@@ -524,24 +524,28 @@ export function identify({
         label: "Extreme fork automation",
         points: CONFIG.POINTS_FORK_SURGE_EXTREME_HIGH,
         detail: `${maxForksIn24h} repositories forked in rapid succession (within 24 hours)`,
+        amplifiable: true,
       };
     } else if (maxForksIn24h >= CONFIG.FORKS_SURGE_SEVERE) {
       forkSpikeFlag = {
         label: "Severe fork surge",
         points: CONFIG.POINTS_FORK_SURGE_SEVERE,
         detail: `${maxForksIn24h} repositories forked in rapid succession (within 24 hours)`,
+        amplifiable: true,
       };
     } else if (maxForksIn24h >= CONFIG.FORKS_EXTREME) {
       forkSpikeFlag = {
         label: "Fork spike detected",
         points: CONFIG.POINTS_FORK_SURGE,
         detail: `Burst of ${maxForksIn24h} fork events in a single 24-hour window`,
+        amplifiable: true,
       };
     } else if (maxForksIn24h >= CONFIG.FORKS_HIGH) {
       forkSpikeFlag = {
         label: "Multiple forks",
         points: CONFIG.POINTS_MULTIPLE_FORKS,
         detail: `${maxForksIn24h} repositories forked in a single 24-hour window`,
+        amplifiable: true,
       };
     }
     // Fall back to 48-hour if 24h thresholds not met
@@ -550,6 +554,7 @@ export function identify({
         label: "Multi-day fork surge",
         points: CONFIG.POINTS_FORK_SURGE_48H,
         detail: `Concentrated burst: ${maxForksIn48h} repositories forked over 2 days`,
+        amplifiable: true,
       };
     }
     // Finally check 72-hour window
@@ -558,6 +563,7 @@ export function identify({
         label: "Severe multi-day fork surge",
         points: CONFIG.POINTS_FORK_SURGE_72H,
         detail: `Rapid burst: ${maxForksIn72h} repositories forked over 72 hours`,
+        amplifiable: true,
       };
     }
 
@@ -583,6 +589,7 @@ export function identify({
             label: "Sustained fork rate",
             points: CONFIG.POINTS_FORKS_PER_DAY_HIGH,
             detail: `Average of ${forksPerDay.toFixed(1)} forks per day over ${forkSpanDays} days (${forkEvents.length} total)`,
+            amplifiable: true,
           });
         }
       }
@@ -621,6 +628,7 @@ export function identify({
           label: "Extended forking pattern",
           points: CONFIG.POINTS_CONSECUTIVE_FORK_DAYS,
           detail: `Forking activity on ${totalDays} days (${maxConsecutiveForkDays} consecutive), ${forkEvents.length} repositories total`,
+          amplifiable: true,
         });
       }
     }
@@ -647,6 +655,7 @@ export function identify({
         label: "Fork scatter pattern",
         points: CONFIG.POINTS_FORK_DIVERSITY,
         detail: `Targeting ${forkedRepos.size} different repositories${timeSpanDetail}`,
+        amplifiable: true,
       });
     }
 
@@ -709,6 +718,7 @@ export function identify({
             label: "Suspicious chained automations",
             points: CONFIG.POINTS_FORK_COMBINED_ACTIVITY,
             detail: `${totalOps} chained repository operations: ${forkEvents.length} forks followed by ${branchesInForkedRepos.length} branches, then ${prsInForkedRepos.length} pull requests (based on available event history)`,
+            amplifiable: true,
           });
         }
       }
@@ -748,12 +758,14 @@ export function identify({
           label: "Extreme commit burst",
           points: CONFIG.POINTS_EXTREME_ACTIVITY_DENSITY,
           detail: `${maxCommitsInHour} commits within 1 hour`,
+          amplifiable: true,
         });
       } else if (maxCommitsInHour >= CONFIG.HOURLY_ACTIVITY_HIGH) {
         flags.push({
           label: "High commit burst",
           points: CONFIG.POINTS_HIGH_ACTIVITY_DENSITY,
           detail: `${maxCommitsInHour} commits within 1 hour`,
+          amplifiable: true,
         });
       }
 
@@ -775,6 +787,7 @@ export function identify({
           label: "High commit frequency",
           points: CONFIG.POINTS_TIGHT_BURST,
           detail: `${tightBurstCount + 1} commits within very short intervals`,
+          amplifiable: true,
         });
       }
     }
@@ -799,12 +812,14 @@ export function identify({
             label: "Very high PR volume",
             points: CONFIG.POINTS_EXTREME_ACTIVITY_DENSITY + 10,
             detail: `${prEvents.length} PRs in ${eventSpanDays} day${eventSpanDays === 1 ? "" : "s"}`,
+            amplifiable: true,
           });
         } else if (prsPerDay >= CONFIG.ACTIVITY_DENSITY_HIGH / 2) {
           flags.push({
             label: "High PR volume",
             points: CONFIG.POINTS_HIGH_ACTIVITY_DENSITY + 5,
             detail: `${prEvents.length} PRs in ${eventSpanDays} day${eventSpanDays === 1 ? "" : "s"}`,
+            amplifiable: true,
           });
         }
       }
@@ -937,6 +952,7 @@ export function identify({
         label: "High PR volume in the past 24 hours",
         points: CONFIG.POINTS_PR_BURST,
         detail: `${prsToday.length} PRs to other repos in the last 24 hours`,
+        amplifiable: true,
       });
     } else if (prsThisWeek.length >= CONFIG.PRS_WEEK_HIGH) {
       // Many PRs in a week
@@ -944,6 +960,7 @@ export function identify({
         label: "High PR volume during last week",
         points: CONFIG.POINTS_HIGH_PR_FREQUENCY,
         detail: `${prsThisWeek.length} PRs to other repos this week`,
+        amplifiable: true,
       });
     }
 
@@ -996,6 +1013,7 @@ export function identify({
         label: "Extreme PR spam (daily)",
         points: CONFIG.POINTS_PRS_DAY_EXTREME,
         detail: `${prsInLastDay.length} PRs in the last 24 hours`,
+        amplifiable: true,
       });
     }
 
@@ -1005,6 +1023,7 @@ export function identify({
         label: "Extreme PR spam (weekly)",
         points: CONFIG.POINTS_PRS_WEEK_EXTREME,
         detail: `${prsInLastWeek.length} PRs in the last 7 days`,
+        amplifiable: true,
       });
     }
     // Very high weekly spam: 50+ PRs in 7 days (only if not already extreme)
@@ -1013,6 +1032,7 @@ export function identify({
         label: "Very high PR spam frequency",
         points: CONFIG.POINTS_PRS_WEEK_VERY_HIGH,
         detail: `${prsInLastWeek.length} PRs in the last 7 days`,
+        amplifiable: true,
       });
     }
 
@@ -1067,6 +1087,7 @@ export function identify({
               label: "Distributed PR spam pattern",
               points: CONFIG.POINTS_PR_SPAM_DISTRIBUTED,
               detail: `${allPREvents.length} PRs spread across ${prTargetRepos.size} different repositories${timeSpanDays > 0 ? ` (${prsPerWeek.toFixed(1)} PRs/week)` : ""}`,
+              amplifiable: true,
             });
           }
         }
@@ -1074,9 +1095,28 @@ export function identify({
     }
   }
 
+  const hasAmplifiable = flags.some((f) => f.amplifiable && f.points > 0);
+  if (aiTier) {
+    const { ratio, aiCommits, totalCommits } = commitMetadata;
+    const pct = Math.round(ratio * 100);
+    const detail = hasAmplifiable
+      ? `${aiCommits}/${totalCommits} commits (${pct}%) AI-attributed — ${aiTier.multiplier}x multiplier applied to automation signals`
+      : `${aiCommits}/${totalCommits} commits (${pct}%) AI-attributed — no automation signals to amplify`;
+    flags.push({
+      label: "Predominantly AI-attributed commits",
+      points: 0,
+      detail,
+    });
+  }
+
   // Invert score: 100 = human, 0 = bot
-  const rawScore = flags.reduce((total, flag) => (total += flag.points), 0);
-  const score = aiMultiplierActive ? Math.round(rawScore * CONFIG.AI_COMMIT_MULTIPLIER) : rawScore;
+  const multiplier = aiTier?.multiplier ?? 1;
+  const score = flags.reduce((total, flag) => {
+    const effective = flag.amplifiable
+      ? Math.round(flag.points * multiplier)
+      : flag.points;
+    return total + effective;
+  }, 0);
   const humanScore = Math.max(0, 100 - score);
 
   // Classification based on inverted score
