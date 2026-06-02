@@ -2,6 +2,9 @@ import type { IdentifyFlag, GitHubEvent } from "../types";
 import { CONFIG } from "../config";
 import { calculateNormalizedShannonsEntropy } from "../utils";
 import dayjs from "dayjs";
+import minMax from "dayjs/plugin/minMax";
+
+dayjs.extend(minMax);
 
 export function detectYoungAccountActivity(
   filteredEvents: GitHubEvent[],
