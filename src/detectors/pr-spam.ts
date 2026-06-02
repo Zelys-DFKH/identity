@@ -1,6 +1,9 @@
 import type { IdentifyFlag, GitHubEvent } from "../types";
 import { CONFIG } from "../config";
 import dayjs from "dayjs";
+import minMax from "dayjs/plugin/minMax";
+
+dayjs.extend(minMax);
 
 export function detectExtremeAndDistributedPRSpam(
   filteredEvents: GitHubEvent[],
@@ -16,7 +19,11 @@ export function detectExtremeAndDistributedPRSpam(
   const allPREvents = filteredEvents.filter(
     (e) => e.type === "PullRequestEvent" && e.payload?.action === "opened",
   );
-  const now = dayjs();
+
+  // Anchor time windows to latest PR in batch for reproducible, stable results
+  const prTimestamps = allPREvents.map((e) => dayjs(e.created_at));
+  const latestPRTime = dayjs.max(prTimestamps) || dayjs();
+  const now = latestPRTime;
   const oneDayAgo = now.subtract(1, "day");
   const oneWeekAgo = now.subtract(1, "week");
 
@@ -91,7 +98,7 @@ export function detectExtremeAndDistributedPRSpam(
           timeSpanWeeks > 0 ? allPREvents.length / timeSpanWeeks : Infinity;
 
         // Check rolling 30-day window
-        const thirtyDaysAgo = dayjs().subtract(30, "days");
+        const thirtyDaysAgo = now.subtract(30, "days");
         const prsInLast30Days = allPREvents.filter((e) =>
           dayjs(e.created_at).isAfter(thirtyDaysAgo),
         ).length;
