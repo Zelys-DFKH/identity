@@ -171,4 +171,14 @@ export const CONFIG = {
   RAPID_PR_SPAM_MIN_PAIRS: 4, // need at least this many rapid successive PRs to flag (young accounts)
   RAPID_PR_SPAM_MIN_PAIRS_ESTABLISHED: 6, // stricter threshold for established accounts
   POINTS_RAPID_PR_SPAM: 40, // fork spam attack indicator
+
+  // Closed PR spam (many PRs closed across different repos - rejected/unwanted contributions)
+  CLOSED_PR_SPAM_MIN: 5, // need at least this many closed PRs to flag (young accounts)
+  CLOSED_PR_SPAM_MIN_ESTABLISHED: 8, // stricter threshold for established accounts
+  CLOSED_PR_REPO_SPREAD: 3, // minimum different repos for spray detection
+  CLOSED_PR_TIME_WINDOW_MINUTES: 60, // PRs closed within this window = concentrated spray
+  POINTS_CLOSED_PR_SPAM: 35, // base points for 5-24 closed PRs spread across repos
+  POINTS_CLOSED_PR_SPAM_HIGH: 55, // 25-99 closed PRs = high volume rejected submissions
+  POINTS_CLOSED_PR_SPAM_EXTREME: 75, // 100+ closed PRs = extreme volume ecosystem-wide spam
+  POINTS_CLOSED_PR_SPAM_BURST_EXTREME: 80, // 100+ closed PRs in burst = coordinated attack
 } as const;
