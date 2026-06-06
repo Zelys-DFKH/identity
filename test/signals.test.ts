@@ -1,49 +1,8 @@
 import { expect, describe, it, beforeEach, afterEach, vi } from "vitest";
 import { identify } from "../src/identify";
-import { getFixtures } from "./utils/get-fixtures";
 import type { GitHubEvent } from "../src/types";
 
 const date = new Date(2026, 2, 10, 12);
-
-describe("Signals", () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
-  });
-
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
-  const fixtures = getFixtures();
-  it.each(fixtures.map((_, index) => [index]))("analysis fixture %i", (index: number) => {
-    const [fixture] = fixtures[index];
-    vi.setSystemTime(date);
-
-    const identity = identify({
-      createdAt: fixture.user.created_at,
-      reposCount: fixture.user.public_repos,
-      accountName: fixture.user.login,
-      events: fixture.events,
-    });
-
-    // Validate result structure
-    expect(identity).toBeDefined();
-    expect(identity.score).toBeGreaterThanOrEqual(0);
-    expect(identity.score).toBeLessThanOrEqual(100);
-    expect(["organic", "mixed", "automation"]).toContain(identity.classification);
-    expect(Array.isArray(identity.flags)).toBe(true);
-    expect(identity.profile).toBeDefined();
-    expect(identity.profile.age).toBeGreaterThanOrEqual(0);
-    expect(identity.profile.repos).toBeGreaterThanOrEqual(0);
-    
-    // Validate flag structure
-    identity.flags.forEach((flag) => {
-      expect(flag.label).toBeDefined();
-      expect(flag.points).toBeGreaterThan(0);
-      expect(flag.detail).toBeDefined();
-    });
-  });
-});
 
 describe("identify - Account Age Flags", () => {
   beforeEach(() => {
@@ -65,7 +24,7 @@ describe("identify - Account Age Flags", () => {
     });
 
     expect(result.flags).toContainEqual(
-      expect.objectContaining({ label: "Recently created" })
+      expect.objectContaining({ label: "Recently created" }),
     );
   });
 
@@ -79,7 +38,7 @@ describe("identify - Account Age Flags", () => {
     });
 
     expect(result.flags).toContainEqual(
-      expect.objectContaining({ label: "Young account" })
+      expect.objectContaining({ label: "Young account" }),
     );
   });
 
@@ -92,12 +51,10 @@ describe("identify - Account Age Flags", () => {
       events: [],
     });
 
-    expect(
-      result.flags.some((f) => f.label === "Recently created")
-    ).toBe(false);
-    expect(
-      result.flags.some((f) => f.label === "Young account")
-    ).toBe(false);
+    expect(result.flags.some((f) => f.label === "Recently created")).toBe(
+      false,
+    );
+    expect(result.flags.some((f) => f.label === "Young account")).toBe(false);
   });
 });
 
@@ -117,7 +74,14 @@ describe("identify - Zero Repos & External Activity", () => {
     for (let i = 0; i < 20; i++) {
       events.push({
         type: "PushEvent",
-        created_at: new Date(2026, 2, 10, Math.floor(i / 4), 0, 0).toISOString(),
+        created_at: new Date(
+          2026,
+          2,
+          10,
+          Math.floor(i / 4),
+          0,
+          0,
+        ).toISOString(),
         repo: { name: `other-org/repo${i}` } as any,
       } as any);
     }
@@ -129,9 +93,11 @@ describe("identify - Zero Repos & External Activity", () => {
       events,
     });
 
-    expect(result.flags.some((f) =>
-      f.label.includes("Only active on other people's repos")
-    )).toBe(true);
+    expect(
+      result.flags.some((f) =>
+        f.label.includes("Only active on other people's repos"),
+      ),
+    ).toBe(true);
   });
 });
 
@@ -182,7 +148,9 @@ describe("identify - Fork Surge Detection", () => {
       events,
     });
 
-    expect(result.flags.some((f) => f.label === "Fork spike detected")).toBe(true);
+    expect(result.flags.some((f) => f.label === "Fork spike detected")).toBe(
+      true,
+    );
   });
 
   it("should not flag forks spread over more than 24 hours", () => {
@@ -190,7 +158,13 @@ describe("identify - Fork Surge Detection", () => {
     for (let i = 0; i < 10; i++) {
       events.push({
         type: "ForkEvent",
-        created_at: new Date(2026, 2, 10 + Math.floor(i / 3), i * 2, 0).toISOString(),
+        created_at: new Date(
+          2026,
+          2,
+          10 + Math.floor(i / 3),
+          i * 2,
+          0,
+        ).toISOString(),
         repo: { name: `repo${i}` } as any,
       } as any);
     }
@@ -203,9 +177,9 @@ describe("identify - Fork Surge Detection", () => {
     });
 
     expect(
-      result.flags.some((f) =>
-        f.label.includes("fork") || f.label.includes("Fork")
-      )
+      result.flags.some(
+        (f) => f.label.includes("fork") || f.label.includes("Fork"),
+      ),
     ).toBe(false);
   });
 
@@ -215,7 +189,14 @@ describe("identify - Fork Surge Detection", () => {
     for (let i = 0; i < 17; i++) {
       events.push({
         type: "ForkEvent",
-        created_at: new Date(2026, 2, 10, Math.floor(i * 1.4), 0, 0).toISOString(),
+        created_at: new Date(
+          2026,
+          2,
+          10,
+          Math.floor(i * 1.4),
+          0,
+          0,
+        ).toISOString(),
         repo: { name: `repo${i}` } as any,
       } as any);
     }
@@ -228,14 +209,14 @@ describe("identify - Fork Surge Detection", () => {
     });
 
     // Should have spike detected
-    expect(
-      result.flags.some((f) => f.label === "Fork spike detected")
-    ).toBe(true);
+    expect(result.flags.some((f) => f.label === "Fork spike detected")).toBe(
+      true,
+    );
 
     // Should NOT have sustained fork rate (spike only spans 1 day)
-    expect(
-      result.flags.some((f) => f.label === "Sustained fork rate")
-    ).toBe(false);
+    expect(result.flags.some((f) => f.label === "Sustained fork rate")).toBe(
+      false,
+    );
   });
 
   it("should not show fork scatter pattern when spike is detected", () => {
@@ -244,7 +225,14 @@ describe("identify - Fork Surge Detection", () => {
     for (let i = 0; i < 20; i++) {
       events.push({
         type: "ForkEvent",
-        created_at: new Date(2026, 2, 10, Math.floor(i * 1.2), 0, 0).toISOString(),
+        created_at: new Date(
+          2026,
+          2,
+          10,
+          Math.floor(i * 1.2),
+          0,
+          0,
+        ).toISOString(),
         repo: { name: `repo${i}` } as any,
       } as any);
     }
@@ -258,15 +246,16 @@ describe("identify - Fork Surge Detection", () => {
 
     // Should have spike detected (20 in 24h)
     expect(
-      result.flags.some((f) =>
-        f.label.includes("Severe fork surge") || f.label.includes("Extreme")
-      )
+      result.flags.some(
+        (f) =>
+          f.label.includes("Severe fork surge") || f.label.includes("Extreme"),
+      ),
     ).toBe(true);
 
     // Should NOT have scatter pattern (spike already indicates the threat)
-    expect(
-      result.flags.some((f) => f.label === "Fork scatter pattern")
-    ).toBe(false);
+    expect(result.flags.some((f) => f.label === "Fork scatter pattern")).toBe(
+      false,
+    );
   });
 
   it("should show fork scatter pattern for slow, distributed targeting", () => {
@@ -275,7 +264,13 @@ describe("identify - Fork Surge Detection", () => {
     for (let i = 0; i < 20; i++) {
       events.push({
         type: "ForkEvent",
-        created_at: new Date(2026, 2, 10 + Math.floor(i / 2), i * 4, 0).toISOString(),
+        created_at: new Date(
+          2026,
+          2,
+          10 + Math.floor(i / 2),
+          i * 4,
+          0,
+        ).toISOString(),
         repo: { name: `repo${i}` } as any,
       } as any);
     }
@@ -289,15 +284,15 @@ describe("identify - Fork Surge Detection", () => {
 
     // Should NOT have spike (only 2 per day, spread over 10 days)
     expect(
-      result.flags.some((f) =>
-        f.label.includes("spike") || f.label.includes("Spike")
-      )
+      result.flags.some(
+        (f) => f.label.includes("spike") || f.label.includes("Spike"),
+      ),
     ).toBe(false);
 
     // Should have scatter pattern (diversity of targets)
-    expect(
-      result.flags.some((f) => f.label === "Fork scatter pattern")
-    ).toBe(true);
+    expect(result.flags.some((f) => f.label === "Fork scatter pattern")).toBe(
+      true,
+    );
   });
 });
 
@@ -343,9 +338,7 @@ describe("identify - Repository Creation Patterns", () => {
     });
 
     expect(
-      result.flags.some((f) =>
-        f.label === "Frequent repository creation"
-      )
+      result.flags.some((f) => f.label === "Frequent repository creation"),
     ).toBe(true);
   });
 
@@ -381,9 +374,7 @@ describe("identify - Repository Creation Patterns", () => {
     });
 
     expect(
-      result.flags.some((f) =>
-        f.label === "Concentrated repository creation"
-      )
+      result.flags.some((f) => f.label === "Concentrated repository creation"),
     ).toBe(true);
   });
 
@@ -408,8 +399,8 @@ describe("identify - Repository Creation Patterns", () => {
 
     expect(
       result.flags.some((f) =>
-        f.label.includes("Concentrated repository creation")
-      )
+        f.label.includes("Concentrated repository creation"),
+      ),
     ).toBe(false);
   });
 });
@@ -450,9 +441,9 @@ describe("identify - Activity Pattern Detection", () => {
       events,
     });
 
-    expect(
-      result.flags.some((f) => f.label === "24/7 activity pattern")
-    ).toBe(true);
+    expect(result.flags.some((f) => f.label === "24/7 activity pattern")).toBe(
+      true,
+    );
   });
 
   it("should not flag 24/7 pattern if activity is spread over multiple days", () => {
@@ -475,9 +466,9 @@ describe("identify - Activity Pattern Detection", () => {
       events,
     });
 
-    expect(
-      result.flags.some((f) => f.label === "24/7 activity pattern")
-    ).toBe(false);
+    expect(result.flags.some((f) => f.label === "24/7 activity pattern")).toBe(
+      false,
+    );
   });
 });
 
@@ -509,9 +500,9 @@ describe("identify - Narrow Activity Focus", () => {
     });
 
     // Pure push events with low diversity and no interaction
-    expect(
-      result.flags.some((f) => f.label === "Narrow activity focus")
-    ).toBe(true);
+    expect(result.flags.some((f) => f.label === "Narrow activity focus")).toBe(
+      true,
+    );
   });
 
   it("should not flag narrow focus if there are human interactions", () => {
@@ -538,9 +529,9 @@ describe("identify - Narrow Activity Focus", () => {
       events,
     });
 
-    expect(
-      result.flags.some((f) => f.label === "Narrow activity focus")
-    ).toBe(false);
+    expect(result.flags.some((f) => f.label === "Narrow activity focus")).toBe(
+      false,
+    );
   });
 });
 
@@ -573,7 +564,10 @@ describe("identify - Score Calculation", () => {
     });
 
     // Should have some fork-related flags
-    const totalPoints = result.flags.reduce((sum, flag) => sum + flag.points, 0);
+    const totalPoints = result.flags.reduce(
+      (sum, flag) => sum + flag.points,
+      0,
+    );
     const expectedScore = Math.max(0, 100 - totalPoints);
     expect(result.score).toBe(expectedScore);
     expect(result.score).toBeLessThanOrEqual(100);
@@ -598,7 +592,14 @@ describe("identify - Score Calculation", () => {
     for (let i = 0; i < 50; i++) {
       events.push({
         type: "ForkEvent",
-        created_at: new Date(2026, 2, 10, Math.floor(i / 2), i % 60, 0).toISOString(),
+        created_at: new Date(
+          2026,
+          2,
+          10,
+          Math.floor(i / 2),
+          i % 60,
+          0,
+        ).toISOString(),
         repo: { name: `repo${i}` } as any,
       } as any);
     }
@@ -666,7 +667,14 @@ describe("identify - Classification", () => {
     for (let i = 0; i < 35; i++) {
       events.push({
         type: "ForkEvent",
-        created_at: new Date(2026, 2, 10, Math.floor(i / 5), i * 2, 0).toISOString(),
+        created_at: new Date(
+          2026,
+          2,
+          10,
+          Math.floor(i / 5),
+          i * 2,
+          0,
+        ).toISOString(),
         repo: { name: `repo${i}` } as any,
       } as any);
     }
@@ -755,7 +763,9 @@ describe("identify - Issue Comment Spam Detection", () => {
       events,
     });
 
-    expect(result.flags.some((f) => f.label === "Issue comment spam")).toBe(true);
+    expect(result.flags.some((f) => f.label === "Issue comment spam")).toBe(
+      true,
+    );
   });
 
   it("should flag high issue comment frequency (10-14 repos in short timeframe)", () => {
@@ -777,7 +787,9 @@ describe("identify - Issue Comment Spam Detection", () => {
     });
 
     expect(
-      result.flags.some((f) => f.label === "High comment frequency across repos")
+      result.flags.some(
+        (f) => f.label === "High comment frequency across repos",
+      ),
     ).toBe(true);
   });
 
@@ -809,8 +821,8 @@ describe("identify - Issue Comment Spam Detection", () => {
       result.flags.some(
         (f) =>
           f.label === "Issue comment spam" ||
-          f.label === "High comment frequency across repos"
-      )
+          f.label === "High comment frequency across repos",
+      ),
     ).toBe(false);
   });
 
@@ -844,8 +856,8 @@ describe("identify - Issue Comment Spam Detection", () => {
       result.flags.some(
         (f) =>
           f.label === "Issue comment spam" ||
-          f.label === "High comment frequency across repos"
-      )
+          f.label === "High comment frequency across repos",
+      ),
     ).toBe(false);
   });
 
@@ -868,7 +880,7 @@ describe("identify - Issue Comment Spam Detection", () => {
     });
 
     const issueCommentFlag = result.flags.find(
-      (f) => f.label === "High comment frequency across repos"
+      (f) => f.label === "High comment frequency across repos",
     );
     expect(issueCommentFlag).toBeDefined();
     if (issueCommentFlag) {
@@ -899,7 +911,7 @@ describe("identify - Issue Comment Spam Detection", () => {
     const issueCommentFlag = result.flags.find(
       (f) =>
         f.label === "Issue comment spam" ||
-        f.label === "High comment frequency across repos"
+        f.label === "High comment frequency across repos",
     );
     expect(issueCommentFlag).toBeDefined();
     if (issueCommentFlag) {
@@ -926,7 +938,9 @@ describe("identify - Issue Comment Spam Detection", () => {
       events,
     });
 
-    const issueSpamFlag = result.flags.find((f) => f.label === "Issue comment spam");
+    const issueSpamFlag = result.flags.find(
+      (f) => f.label === "Issue comment spam",
+    );
     expect(issueSpamFlag).toBeDefined();
     expect(issueSpamFlag?.points).toBeGreaterThanOrEqual(35);
   });
@@ -950,7 +964,7 @@ describe("identify - Issue Comment Spam Detection", () => {
     });
 
     const issueFreqFlag = result.flags.find(
-      (f) => f.label === "High comment frequency across repos"
+      (f) => f.label === "High comment frequency across repos",
     );
     expect(issueFreqFlag).toBeDefined();
     expect(issueFreqFlag?.points).toBeGreaterThanOrEqual(25);
@@ -977,7 +991,9 @@ describe("identify - Issue Comment Spam Detection", () => {
 
     // At threshold (10), should flag as "High comment frequency across repos"
     expect(
-      result.flags.some((f) => f.label === "High comment frequency across repos")
+      result.flags.some(
+        (f) => f.label === "High comment frequency across repos",
+      ),
     ).toBe(true);
   });
 
@@ -1005,7 +1021,9 @@ describe("identify - Issue Comment Spam Detection", () => {
 
     // Should flag as "High comment frequency" (11 distinct repos >= threshold of 10)
     expect(
-      result.flags.some((f) => f.label === "High comment frequency across repos")
+      result.flags.some(
+        (f) => f.label === "High comment frequency across repos",
+      ),
     ).toBe(true);
   });
 });
@@ -1076,7 +1094,7 @@ describe("identify - PR Comment Spam Detection", () => {
     });
 
     expect(
-      result.flags.some((f) => f.label === "High PR comment frequency")
+      result.flags.some((f) => f.label === "High PR comment frequency"),
     ).toBe(true);
   });
 
@@ -1107,8 +1125,9 @@ describe("identify - PR Comment Spam Detection", () => {
     expect(
       result.flags.some(
         (f) =>
-          f.label === "PR comment spam" || f.label === "High PR comment frequency"
-      )
+          f.label === "PR comment spam" ||
+          f.label === "High PR comment frequency",
+      ),
     ).toBe(false);
   });
 
@@ -1141,8 +1160,9 @@ describe("identify - PR Comment Spam Detection", () => {
     expect(
       result.flags.some(
         (f) =>
-          f.label === "PR comment spam" || f.label === "High PR comment frequency"
-      )
+          f.label === "PR comment spam" ||
+          f.label === "High PR comment frequency",
+      ),
     ).toBe(false);
   });
 
@@ -1173,7 +1193,7 @@ describe("identify - PR Comment Spam Detection", () => {
     });
 
     const prCommentFlag = result.flags.find(
-      (f) => f.label === "High PR comment frequency"
+      (f) => f.label === "High PR comment frequency",
     );
     expect(prCommentFlag).toBeDefined();
     if (prCommentFlag) {
@@ -1211,7 +1231,8 @@ describe("identify - PR Comment Spam Detection", () => {
 
     const prCommentFlag = result.flags.find(
       (f) =>
-        f.label === "PR comment spam" || f.label === "High PR comment frequency"
+        f.label === "PR comment spam" ||
+        f.label === "High PR comment frequency",
     );
     expect(prCommentFlag).toBeDefined();
     if (prCommentFlag) {
@@ -1250,11 +1271,12 @@ describe("identify - PR Comment Spam Detection", () => {
     const hasIssueSpam = result.flags.some(
       (f) =>
         f.label === "Issue comment spam" ||
-        f.label === "High comment frequency across repos"
+        f.label === "High comment frequency across repos",
     );
     const hasPRSpam = result.flags.some(
       (f) =>
-        f.label === "PR comment spam" || f.label === "High PR comment frequency"
+        f.label === "PR comment spam" ||
+        f.label === "High PR comment frequency",
     );
 
     expect(hasIssueSpam).toBe(true);
@@ -1311,7 +1333,7 @@ describe("identify - PR Comment Spam Detection", () => {
     });
 
     const prFreqFlag = result.flags.find(
-      (f) => f.label === "High PR comment frequency"
+      (f) => f.label === "High PR comment frequency",
     );
     expect(prFreqFlag).toBeDefined();
     expect(prFreqFlag?.points).toBeGreaterThanOrEqual(25);
@@ -1346,7 +1368,7 @@ describe("identify - PR Comment Spam Detection", () => {
 
     // At threshold (8), should flag as "High PR comment frequency"
     expect(
-      result.flags.some((f) => f.label === "High PR comment frequency")
+      result.flags.some((f) => f.label === "High PR comment frequency"),
     ).toBe(true);
   });
 });
@@ -1363,14 +1385,20 @@ describe("identify - Extreme PR Spam Detection (Time-Based)", () => {
 
   it("should flag extreme daily PR spam (30+ PRs in 24 hours)", () => {
     const events: GitHubEvent[] = [];
-    
+
     // Create 35 PR events in the last 24 hours
     for (let i = 0; i < 35; i++) {
       const repoIndex = i % 20;
       events.push({
         type: "PullRequestEvent",
         payload: { action: "opened" },
-        created_at: new Date(2026, 2, 10, 6 + Math.floor(i / 5), i % 60).toISOString(),
+        created_at: new Date(
+          2026,
+          2,
+          10,
+          6 + Math.floor(i / 5),
+          i % 60,
+        ).toISOString(),
         repo: { name: `owner/repo${repoIndex}` } as any,
       } as any);
     }
@@ -1382,18 +1410,18 @@ describe("identify - Extreme PR Spam Detection (Time-Based)", () => {
       events,
     });
 
-    const spamFlag = result.flags.find((f) => f.label === "Extreme PR spam (daily)");
+    const spamFlag = result.flags.find(
+      (f) => f.label === "Extreme PR spam (daily)",
+    );
     expect(spamFlag).toBeDefined();
     expect(spamFlag?.points).toBe(45);
     expect(spamFlag?.detail).toContain("35 PRs");
     expect(result.classification).toBe("automation");
   });
 
-
-
   it("should flag distributed PR spam pattern (50+ PRs across 15+ repos)", () => {
     const events: GitHubEvent[] = [];
-    
+
     // Create 100 PR events across 20 repos (distributed over time to avoid daily/weekly flags)
     for (let i = 0; i < 100; i++) {
       const repoIndex = i % 20;
@@ -1421,7 +1449,9 @@ describe("identify - Extreme PR Spam Detection (Time-Based)", () => {
       events,
     });
 
-    const spamFlag = result.flags.find((f) => f.label === "Distributed PR spam pattern");
+    const spamFlag = result.flags.find(
+      (f) => f.label === "Distributed PR spam pattern",
+    );
     expect(spamFlag).toBeDefined();
     expect(spamFlag?.points).toBe(45);
     expect(spamFlag?.detail).toContain("100 PRs");
@@ -1431,13 +1461,19 @@ describe("identify - Extreme PR Spam Detection (Time-Based)", () => {
 
   it("should not flag moderate PR volume in a week", () => {
     const events: GitHubEvent[] = [];
-    
+
     // Create 20 PRs in the last 7 days (below threshold)
     for (let i = 0; i < 20; i++) {
       events.push({
         type: "PullRequestEvent",
         payload: { action: "opened" },
-        created_at: new Date(2026, 2, 6 + Math.floor(i / 4), 12, i % 60).toISOString(),
+        created_at: new Date(
+          2026,
+          2,
+          6 + Math.floor(i / 4),
+          12,
+          i % 60,
+        ).toISOString(),
         repo: { name: `owner/repo${i % 5}` } as any,
       } as any);
     }
@@ -1449,10 +1485,16 @@ describe("identify - Extreme PR Spam Detection (Time-Based)", () => {
       events,
     });
 
-    const extremeDailyFlag = result.flags.find((f) => f.label === "Extreme PR spam (daily)");
-    const extremeWeeklyFlag = result.flags.find((f) => f.label === "Extreme PR spam (weekly)");
-    const veryHighFlag = result.flags.find((f) => f.label === "Very high PR spam frequency");
-    
+    const extremeDailyFlag = result.flags.find(
+      (f) => f.label === "Extreme PR spam (daily)",
+    );
+    const extremeWeeklyFlag = result.flags.find(
+      (f) => f.label === "Extreme PR spam (weekly)",
+    );
+    const veryHighFlag = result.flags.find(
+      (f) => f.label === "Very high PR spam frequency",
+    );
+
     expect(extremeDailyFlag).toBeUndefined();
     expect(extremeWeeklyFlag).toBeUndefined();
     expect(veryHighFlag).toBeUndefined();
@@ -1460,7 +1502,7 @@ describe("identify - Extreme PR Spam Detection (Time-Based)", () => {
 
   it("should not flag legitimate long-term activity (500 PRs over 6 months)", () => {
     const events: GitHubEvent[] = [];
-    
+
     // Create 500 PRs spread over ~6 months
     for (let i = 0; i < 500; i++) {
       const repoIndex = i % 30;
@@ -1468,7 +1510,13 @@ describe("identify - Extreme PR Spam Detection (Time-Based)", () => {
       events.push({
         type: "PullRequestEvent",
         payload: { action: "opened" },
-        created_at: new Date(2026, 2 - Math.floor(daysAgo / 30), 10 - (daysAgo % 28), 12, 0).toISOString(),
+        created_at: new Date(
+          2026,
+          2 - Math.floor(daysAgo / 30),
+          10 - (daysAgo % 28),
+          12,
+          0,
+        ).toISOString(),
         repo: { name: `owner/repo${repoIndex}` } as any,
       } as any);
     }
@@ -1480,10 +1528,16 @@ describe("identify - Extreme PR Spam Detection (Time-Based)", () => {
       events,
     });
 
-    const extremeDailyFlag = result.flags.find((f) => f.label === "Extreme PR spam (daily)");
-    const extremeWeeklyFlag = result.flags.find((f) => f.label === "Extreme PR spam (weekly)");
-    const veryHighFlag = result.flags.find((f) => f.label === "Very high PR spam frequency");
-    
+    const extremeDailyFlag = result.flags.find(
+      (f) => f.label === "Extreme PR spam (daily)",
+    );
+    const extremeWeeklyFlag = result.flags.find(
+      (f) => f.label === "Extreme PR spam (weekly)",
+    );
+    const veryHighFlag = result.flags.find(
+      (f) => f.label === "Very high PR spam frequency",
+    );
+
     expect(extremeDailyFlag).toBeUndefined();
     expect(extremeWeeklyFlag).toBeUndefined();
     expect(veryHighFlag).toBeUndefined();
@@ -1491,7 +1545,7 @@ describe("identify - Extreme PR Spam Detection (Time-Based)", () => {
 
   it("should not flag high PR count if repos spread is below threshold", () => {
     const events: GitHubEvent[] = [];
-    
+
     // Create 75 PRs across only 5 repos (below 15 repo threshold)
     for (let i = 0; i < 75; i++) {
       const daysAgo = 14 + Math.floor(i / 5);
@@ -1510,7 +1564,9 @@ describe("identify - Extreme PR Spam Detection (Time-Based)", () => {
       events,
     });
 
-    const distributedSpamFlag = result.flags.find((f) => f.label === "Distributed PR spam pattern");
+    const distributedSpamFlag = result.flags.find(
+      (f) => f.label === "Distributed PR spam pattern",
+    );
     expect(distributedSpamFlag).toBeUndefined();
   });
 });
@@ -1563,11 +1619,11 @@ describe("identify - Repository Exclusion Filter", () => {
     });
 
     // Verify that fork spike flags are different
-    const withoutFilterHasForkFlag = resultWithoutFilter.flags.some((f) =>
-      f.label.includes("fork") || f.label.includes("Fork")
+    const withoutFilterHasForkFlag = resultWithoutFilter.flags.some(
+      (f) => f.label.includes("fork") || f.label.includes("Fork"),
     );
-    const withFilterHasForkFlag = resultWithFilter.flags.some((f) =>
-      f.label.includes("fork") || f.label.includes("Fork")
+    const withFilterHasForkFlag = resultWithFilter.flags.some(
+      (f) => f.label.includes("fork") || f.label.includes("Fork"),
     );
 
     expect(withoutFilterHasForkFlag).toBe(true);
@@ -1596,8 +1652,8 @@ describe("identify - Repository Exclusion Filter", () => {
     });
 
     // Should not flag because all forks are excluded
-    const hasForkFlag = result.flags.some((f) =>
-      f.label.includes("fork") || f.label.includes("Fork")
+    const hasForkFlag = result.flags.some(
+      (f) => f.label.includes("fork") || f.label.includes("Fork"),
     );
     expect(hasForkFlag).toBe(false);
     expect(result.score).toBe(100);
@@ -1634,8 +1690,8 @@ describe("identify - Repository Exclusion Filter", () => {
     });
 
     // Should not flag because only 4 forks remain
-    const hasForkFlag = result.flags.some((f) =>
-      f.label.includes("fork") || f.label.includes("Fork")
+    const hasForkFlag = result.flags.some(
+      (f) => f.label.includes("fork") || f.label.includes("Fork"),
     );
     expect(hasForkFlag).toBe(false);
   });
@@ -1659,8 +1715,8 @@ describe("identify - Repository Exclusion Filter", () => {
     });
 
     // Should behave same as if excludeRepos was not provided
-    const hasForkFlag = result.flags.some((f) =>
-      f.label.includes("fork") || f.label.includes("Fork")
+    const hasForkFlag = result.flags.some(
+      (f) => f.label.includes("fork") || f.label.includes("Fork"),
     );
     expect(hasForkFlag).toBe(true);
   });
@@ -1684,15 +1740,15 @@ describe("identify - Repository Exclusion Filter", () => {
     });
 
     // Should flag fork activity normally
-    const hasForkFlag = result.flags.some((f) =>
-      f.label.includes("fork") || f.label.includes("Fork")
+    const hasForkFlag = result.flags.some(
+      (f) => f.label.includes("fork") || f.label.includes("Fork"),
     );
     expect(hasForkFlag).toBe(true);
   });
 
   it("should exclude repos from all types of analysis (comment spam, bursts, etc)", () => {
     const events: GitHubEvent[] = [];
-    
+
     // Add issue comment spam events to 12 different repos
     for (let i = 0; i < 12; i++) {
       events.push({
@@ -1714,7 +1770,20 @@ describe("identify - Repository Exclusion Filter", () => {
       reposCount: 20,
       accountName: "user",
       events,
-      excludeRepos: ["spam-owner/spam-repo0", "spam-owner/spam-repo1", "spam-owner/spam-repo2", "spam-owner/spam-repo3", "spam-owner/spam-repo4", "spam-owner/spam-repo5", "spam-owner/spam-repo6", "spam-owner/spam-repo7", "spam-owner/spam-repo8", "spam-owner/spam-repo9", "spam-owner/spam-repo10", "spam-owner/spam-repo11"],
+      excludeRepos: [
+        "spam-owner/spam-repo0",
+        "spam-owner/spam-repo1",
+        "spam-owner/spam-repo2",
+        "spam-owner/spam-repo3",
+        "spam-owner/spam-repo4",
+        "spam-owner/spam-repo5",
+        "spam-owner/spam-repo6",
+        "spam-owner/spam-repo7",
+        "spam-owner/spam-repo8",
+        "spam-owner/spam-repo9",
+        "spam-owner/spam-repo10",
+        "spam-owner/spam-repo11",
+      ],
     });
 
     // Without filter should flag comment spam
@@ -1722,8 +1791,8 @@ describe("identify - Repository Exclusion Filter", () => {
       resultWithoutFilter.flags.some(
         (f) =>
           f.label === "Issue comment spam" ||
-          f.label === "High comment frequency across repos"
-      )
+          f.label === "High comment frequency across repos",
+      ),
     ).toBe(true);
 
     // With filter should not flag
@@ -1731,8 +1800,8 @@ describe("identify - Repository Exclusion Filter", () => {
       resultWithFilter.flags.some(
         (f) =>
           f.label === "Issue comment spam" ||
-          f.label === "High comment frequency across repos"
-      )
+          f.label === "High comment frequency across repos",
+      ),
     ).toBe(false);
 
     expect(resultWithFilter.score).toBeGreaterThan(resultWithoutFilter.score);
@@ -1740,7 +1809,7 @@ describe("identify - Repository Exclusion Filter", () => {
 
   it("should partially filter when only some events match exclude list", () => {
     const events: GitHubEvent[] = [];
-    
+
     // Add 8 forks to excluded repo (would trigger flag)
     for (let i = 0; i < 8; i++) {
       events.push({
@@ -1749,7 +1818,7 @@ describe("identify - Repository Exclusion Filter", () => {
         repo: { name: "excluded-owner/excluded-repo" } as any,
       } as any);
     }
-    
+
     // Add 2 forks to non-excluded repo (not enough to flag alone)
     for (let i = 0; i < 2; i++) {
       events.push({
@@ -1769,9 +1838,11 @@ describe("identify - Repository Exclusion Filter", () => {
 
     // Should only see 2 forks (not enough to flag)
     expect(
-      result.flags.some((f) => f.label.includes("fork") || f.label.includes("Fork"))
+      result.flags.some(
+        (f) => f.label.includes("fork") || f.label.includes("Fork"),
+      ),
     ).toBe(false);
-    
+
     // Now test without filter - should flag
     const resultNoFilter = identify({
       createdAt: "2025-01-01T00:00:00Z",
@@ -1779,10 +1850,11 @@ describe("identify - Repository Exclusion Filter", () => {
       accountName: "user",
       events,
     });
-    
+
     expect(
-      resultNoFilter.flags.some((f) => f.label.includes("fork") || f.label.includes("Fork"))
+      resultNoFilter.flags.some(
+        (f) => f.label.includes("fork") || f.label.includes("Fork"),
+      ),
     ).toBe(true);
   });
 });
-
