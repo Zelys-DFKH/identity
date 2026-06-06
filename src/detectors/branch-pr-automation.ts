@@ -3,7 +3,7 @@ import { CONFIG } from "../config";
 import dayjs from "dayjs";
 
 export function detectBranchPRAutomation(
-  filteredEvents: GitHubEvent[],
+  events: GitHubEvent[],
   accountAge: number,
 ): IdentifyFlag[] {
   const flags: IdentifyFlag[] = [];
@@ -19,10 +19,10 @@ export function detectBranchPRAutomation(
     ? CONFIG.BRANCH_PR_PATTERN_RATIO_MIN_ESTABLISHED
     : CONFIG.BRANCH_PR_PATTERN_RATIO_MIN;
 
-  const branchCreates = filteredEvents.filter(
+  const branchCreates = events.filter(
     (e) => e.type === "CreateEvent" && e.payload?.ref_type === "branch",
   );
-  const prEvents = filteredEvents.filter(
+  const prEvents = events.filter(
     (e) => e.type === "PullRequestEvent" && e.payload?.action === "opened",
   );
 
@@ -142,7 +142,8 @@ export function detectBranchPRAutomation(
             for (const branchEntry of branchesForProject) {
               while (
                 prIdx < prsForProject.length &&
-                prsForProject[prIdx]!.time.valueOf() < branchEntry.time.valueOf()
+                prsForProject[prIdx]!.time.valueOf() <
+                  branchEntry.time.valueOf()
               ) {
                 prIdx++;
               }

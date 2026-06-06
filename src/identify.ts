@@ -72,7 +72,6 @@ export function identify({
   flags.push(
     ...detectYoungAccountActivity(
       filteredEvents,
-      events,
       reposCount,
       isNewOrYoungAccount,
       accountName,

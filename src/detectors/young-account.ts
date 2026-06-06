@@ -7,7 +7,6 @@ import minMax from "dayjs/plugin/minMax";
 dayjs.extend(minMax);
 
 export function detectYoungAccountActivity(
-  filteredEvents: GitHubEvent[],
   events: GitHubEvent[],
   reposCount: number,
   isNewOrYoungAccount: boolean,
@@ -15,17 +14,14 @@ export function detectYoungAccountActivity(
 ): IdentifyFlag[] {
   const flags: IdentifyFlag[] = [];
 
-  if (
-    !isNewOrYoungAccount ||
-    filteredEvents.length < CONFIG.MIN_EVENTS_FOR_ANALYSIS
-  ) {
+  if (!isNewOrYoungAccount || events.length < CONFIG.MIN_EVENTS_FOR_ANALYSIS) {
     return flags;
   }
 
   const userLogin = accountName.toLowerCase();
 
   // Commit burst analysis
-  const commitEvents = filteredEvents.filter((e) => e.type === "PushEvent");
+  const commitEvents = events.filter((e) => e.type === "PushEvent");
 
   if (commitEvents.length >= CONFIG.MIN_EVENTS_FOR_ANALYSIS) {
     const timestamps = commitEvents
@@ -93,7 +89,7 @@ export function detectYoungAccountActivity(
   }
 
   // PRs (flag more aggressively)
-  const prEvents = filteredEvents.filter(
+  const prEvents = events.filter(
     (e) => e.type === "PullRequestEvent" && e.payload?.action === "opened",
   );
 
@@ -127,7 +123,7 @@ export function detectYoungAccountActivity(
   // Bots: uniform hour distribution (high entropy) across many hours = suspicious
   // Humans: concentrated in certain hours (low entropy/predictable patterns)
   const codingEventTypes = new Set(["PushEvent", "PullRequestEvent"]);
-  const codingEventsWithReviews = filteredEvents.filter(
+  const codingEventsWithReviews = events.filter(
     (e) =>
       (e.type && codingEventTypes.has(e.type)) ||
       e.type === "PullRequestReviewEvent" ||
@@ -287,11 +283,11 @@ export function detectYoungAccountActivity(
   }
 
   // Mostly external activity (not 100%)
-  const foreignEvents = filteredEvents.filter((e) => {
+  const foreignEvents = events.filter((e) => {
     const repoOwner = e.repo?.name?.split("/")[0]?.toLowerCase();
     return repoOwner && repoOwner !== userLogin;
   });
-  const foreignRatio = foreignEvents.length / filteredEvents.length;
+  const foreignRatio = foreignEvents.length / events.length;
   if (
     foreignEvents.length > 0 &&
     foreignRatio >= CONFIG.FOREIGN_RATIO_HIGH &&

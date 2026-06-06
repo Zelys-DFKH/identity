@@ -7,14 +7,12 @@ import minMax from "dayjs/plugin/minMax";
 dayjs.extend(utc);
 dayjs.extend(minMax);
 
-export function detectForkActivity(
-  filteredEvents: GitHubEvent[],
-): IdentifyFlag[] {
+export function detectForkActivity(events: GitHubEvent[]): IdentifyFlag[] {
   const flags: IdentifyFlag[] = [];
 
   // Fork surge - applies uniformly to all accounts (detects time-based spike in forking)
   // Spam is spam: 8+ forks in 24 hours is bot behavior regardless of account age
-  const forkEvents = filteredEvents.filter((e) => e.type === "ForkEvent");
+  const forkEvents = events.filter((e) => e.type === "ForkEvent");
 
   if (forkEvents.length < CONFIG.FORKS_HIGH) {
     return flags;
@@ -198,17 +196,17 @@ export function detectForkActivity(
 }
 
 export function detectForkCombinedActivity(
-  filteredEvents: GitHubEvent[],
+  events: GitHubEvent[],
 ): IdentifyFlag[] {
   const flags: IdentifyFlag[] = [];
 
   // Fork + coordinated activity combo (forks + branches + PRs = chained automation)
   // Verify actual chaining: branches in forked repos, PRs targeting forked repos, temporal order
-  const forkEvents = filteredEvents.filter((e) => e.type === "ForkEvent");
+  const forkEvents = events.filter((e) => e.type === "ForkEvent");
 
   if (
     forkEvents.length < CONFIG.FORK_COMBINED_ACTIVITY_MIN ||
-    filteredEvents.length < CONFIG.MIN_EVENTS_FOR_ANALYSIS
+    events.length < CONFIG.MIN_EVENTS_FOR_ANALYSIS
   ) {
     return flags;
   }
@@ -219,7 +217,7 @@ export function detectForkCombinedActivity(
   );
 
   // Find branches created in forked repos
-  const branchCreateEvents = filteredEvents.filter(
+  const branchCreateEvents = events.filter(
     (e) => e.type === "CreateEvent" && e.payload?.ref_type === "branch",
   );
   const branchesInForkedRepos = branchCreateEvents.filter((e) =>
@@ -227,7 +225,7 @@ export function detectForkCombinedActivity(
   );
 
   // Find PRs targeting forked repos
-  const allPREvents = filteredEvents.filter(
+  const allPREvents = events.filter(
     (e) => e.type === "PullRequestEvent" && e.payload?.action === "opened",
   );
   const prsInForkedRepos = allPREvents.filter((e) =>

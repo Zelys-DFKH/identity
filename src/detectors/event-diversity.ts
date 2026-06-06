@@ -3,11 +3,11 @@ import { CONFIG } from "../config";
 import { calculateNormalizedShannonsEntropy } from "../utils";
 
 export function detectNarrowActivityFocus(
-  filteredEvents: GitHubEvent[],
+  events: GitHubEvent[],
 ): IdentifyFlag[] {
   const flags: IdentifyFlag[] = [];
 
-  if (filteredEvents.length < CONFIG.MIN_EVENTS_FOR_ANALYSIS) {
+  if (events.length < CONFIG.MIN_EVENTS_FOR_ANALYSIS) {
     return flags;
   }
 
@@ -15,7 +15,7 @@ export function detectNarrowActivityFocus(
   // Bots typically have narrow event type profiles (low entropy)
   // Humans engage in varied activities (high entropy)
   const eventTypeMap = new Map<string, number>();
-  filteredEvents.forEach((e) => {
+  events.forEach((e) => {
     if (e.type) {
       eventTypeMap.set(e.type, (eventTypeMap.get(e.type) || 0) + 1);
     }
@@ -25,7 +25,7 @@ export function detectNarrowActivityFocus(
   const eventTypeEntropy = calculateNormalizedShannonsEntropy(eventTypeCount);
 
   const eventTypes = new Set(
-    filteredEvents
+    events
       .map((e) => e.type)
       .filter((t): t is string => t !== null && t !== undefined),
   );

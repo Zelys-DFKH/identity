@@ -6,17 +6,17 @@ import minMax from "dayjs/plugin/minMax";
 dayjs.extend(minMax);
 
 export function detectExtremeAndDistributedPRSpam(
-  filteredEvents: GitHubEvent[],
+  events: GitHubEvent[],
 ): IdentifyFlag[] {
   const flags: IdentifyFlag[] = [];
 
   // Extreme PR spam detection - TIME-WINDOWED (applies to all accounts)
   // Spam is about intensity/velocity, not total count
-  if (filteredEvents.length < CONFIG.MIN_EVENTS_FOR_ANALYSIS) {
+  if (events.length < CONFIG.MIN_EVENTS_FOR_ANALYSIS) {
     return flags;
   }
 
-  const allPREvents = filteredEvents.filter(
+  const allPREvents = events.filter(
     (e) => e.type === "PullRequestEvent" && e.payload?.action === "opened",
   );
 

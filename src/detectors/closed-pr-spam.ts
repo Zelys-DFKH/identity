@@ -3,7 +3,7 @@ import { CONFIG } from "../config";
 import dayjs from "dayjs";
 
 export function detectClosedPRSpam(
-  filteredEvents: GitHubEvent[],
+  events: GitHubEvent[],
   accountAge: number,
 ): IdentifyFlag[] {
   const flags: IdentifyFlag[] = [];
@@ -18,7 +18,7 @@ export function detectClosedPRSpam(
     ? CONFIG.CLOSED_PR_SPAM_MIN_ESTABLISHED
     : CONFIG.CLOSED_PR_SPAM_MIN;
 
-  const closedPREvents = filteredEvents.filter(
+  const closedPREvents = events.filter(
     (e) => e.type === "PullRequestEvent" && e.payload?.action === "closed",
   );
 
@@ -75,7 +75,7 @@ export function detectClosedPRSpam(
   }
 
   // Determine severity based on volume of closed PRs
-  let points = CONFIG.POINTS_CLOSED_PR_SPAM; // base: 5-24 PRs
+  let points: number = CONFIG.POINTS_CLOSED_PR_SPAM; // base: 5-24 PRs
   if (closedPREvents.length >= 100) {
     points = CONFIG.POINTS_CLOSED_PR_SPAM_EXTREME; // 100+ PRs = extreme spam
   } else if (closedPREvents.length >= 25) {

@@ -6,11 +6,11 @@ import utc from "dayjs/plugin/utc";
 dayjs.extend(utc);
 
 export function detectInhumanActivityPattern(
-  filteredEvents: GitHubEvent[],
+  events: GitHubEvent[],
 ): IdentifyFlag[] {
   const flags: IdentifyFlag[] = [];
 
-  if (filteredEvents.length < CONFIG.MIN_EVENTS_FOR_ANALYSIS) {
+  if (events.length < CONFIG.MIN_EVENTS_FOR_ANALYSIS) {
     return flags;
   }
 
@@ -18,7 +18,7 @@ export function detectInhumanActivityPattern(
   // Global hours across multiple days is meaningless - someone codes at different times on different days
   // Only flag if a SINGLE DAY shows no realistic sleep window (< 3 hours gap)
   const eventsByDay = new Map<string, Set<number>>();
-  filteredEvents.forEach((e) => {
+  events.forEach((e) => {
     const day = dayjs.utc(e.created_at).format("YYYY-MM-DD");
     const hour = dayjs.utc(e.created_at).hour();
     if (!eventsByDay.has(day)) {
@@ -39,7 +39,7 @@ export function detectInhumanActivityPattern(
 
   eventsByDay.forEach((hoursInDay, day) => {
     const hoursActive = hoursInDay.size;
-    const eventsOnDay = filteredEvents.filter(
+    const eventsOnDay = events.filter(
       (e) => dayjs.utc(e.created_at).format("YYYY-MM-DD") === day,
     ).length;
 

@@ -2,17 +2,15 @@ import type { IdentifyFlag, GitHubEvent } from "../types";
 import { CONFIG } from "../config";
 import dayjs from "dayjs";
 
-export function detectCommentSpam(
-  filteredEvents: GitHubEvent[],
-): IdentifyFlag[] {
+export function detectCommentSpam(events: GitHubEvent[]): IdentifyFlag[] {
   const flags: IdentifyFlag[] = [];
 
-  if (filteredEvents.length < CONFIG.MIN_EVENTS_FOR_ANALYSIS) {
+  if (events.length < CONFIG.MIN_EVENTS_FOR_ANALYSIS) {
     return flags;
   }
 
   // Issue comment spam detection (multiple comments across different repos in short time)
-  const issueCommentEvents = filteredEvents.filter(
+  const issueCommentEvents = events.filter(
     (e) => e.type === "IssueCommentEvent",
   );
 
@@ -97,7 +95,7 @@ export function detectCommentSpam(
   }
 
   // PR comment spam detection (multiple review comments across different PRs/repos in short time)
-  const prCommentEvents = filteredEvents.filter(
+  const prCommentEvents = events.filter(
     (e) => e.type === "PullRequestReviewCommentEvent",
   );
 

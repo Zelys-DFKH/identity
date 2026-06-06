@@ -3,16 +3,16 @@ import { CONFIG } from "../config";
 import dayjs from "dayjs";
 
 export function detectRepositoryCreationBurst(
-  filteredEvents: GitHubEvent[],
+  events: GitHubEvent[],
 ): IdentifyFlag[] {
   const flags: IdentifyFlag[] = [];
 
-  if (filteredEvents.length < CONFIG.MIN_EVENTS_FOR_ANALYSIS) {
+  if (events.length < CONFIG.MIN_EVENTS_FOR_ANALYSIS) {
     return flags;
   }
 
   // Filter CreateEvent to only actual repository creations (not branch/tag creation)
-  const createEvents = filteredEvents.filter((e) => {
+  const createEvents = events.filter((e) => {
     return e.type === "CreateEvent" && e.payload?.ref_type === "repository";
   });
 

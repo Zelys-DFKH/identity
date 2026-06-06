@@ -3,7 +3,7 @@ import { CONFIG } from "../config";
 import dayjs from "dayjs";
 
 export function detectRapidPRSpam(
-  filteredEvents: GitHubEvent[],
+  events: GitHubEvent[],
   accountAge: number,
 ): IdentifyFlag[] {
   const flags: IdentifyFlag[] = [];
@@ -16,7 +16,7 @@ export function detectRapidPRSpam(
     ? CONFIG.RAPID_PR_SPAM_MIN_PAIRS_ESTABLISHED
     : CONFIG.RAPID_PR_SPAM_MIN_PAIRS;
 
-  const prEvents = filteredEvents.filter(
+  const prEvents = events.filter(
     (e) => e.type === "PullRequestEvent" && e.payload?.action === "opened",
   );
 
