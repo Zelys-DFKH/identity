@@ -2,11 +2,11 @@
 
 /**
  * Regression Test Runner
- * 
+ *
  * Usage:
  *   tsx scripts/regression-test.ts           # Run and save report
  *   tsx scripts/regression-test.ts --dry-run # Run without saving report
- * 
+ *
  * Via npm:
  *   npm run regression-test                  # Run and save
  *   npm run regression-test:dry              # Dry run (no report)
@@ -51,7 +51,10 @@ async function getPackageVersion(): Promise<string> {
 }
 
 function loadFixture(fixtureName: string) {
-  const fixturePath = path.join(__dirname, `../test/fixtures/${fixtureName}.json`);
+  const fixturePath = path.join(
+    __dirname,
+    `../test/fixtures/${fixtureName}.json`,
+  );
   return JSON.parse(fs.readFileSync(fixturePath, "utf-8"));
 }
 
@@ -70,7 +73,7 @@ function getPreviousReports(): RegressionReport[] {
 
 function getLastPassingClassification(
   fixtureName: string,
-  reports: RegressionReport[]
+  reports: RegressionReport[],
 ): IdentityClassification | null {
   for (let i = reports.length - 1; i >= 0; i--) {
     const result = reports[i].results.find((r) => r.fixture === fixtureName);
@@ -98,7 +101,10 @@ async function runRegressionTests(): Promise<RegressionReport> {
     });
 
     const passed = result.classification === expected;
-    const lastPassing = getLastPassingClassification(fixtureName, previousReports);
+    const lastPassing = getLastPassingClassification(
+      fixtureName,
+      previousReports,
+    );
 
     const regression = !passed && lastPassing !== null;
 
@@ -162,20 +168,16 @@ function printReport(report: RegressionReport): void {
   console.log(`Timestamp: ${report.timestamp}`);
   console.log("─".repeat(60));
 
-  console.log("\n📋 Results:");
+  console.log("\n Results:");
   for (const result of report.results) {
-    const icon = result.passed
-      ? "✅"
-      : result.regression
-        ? "🚨"
-        : "⚠️";
+    const icon = result.passed ? "✅" : result.regression ? "🚨" : "⚠️";
     const status = result.regression
       ? "REGRESSION"
       : result.passed
         ? "PASS"
         : "FAIL";
     console.log(
-      `${icon} ${result.fixture}: ${status} (expected: ${result.expected}, actual: ${result.actual})`
+      `${icon} ${result.fixture}: ${status} (expected: ${result.expected}, actual: ${result.actual})`,
     );
   }
 
@@ -200,7 +202,7 @@ async function main(): Promise<void> {
   try {
     const dryRun = process.argv.includes("--dry-run");
     const report = await runRegressionTests();
-    
+
     if (dryRun) {
       printReport(report);
       console.log(`[DRY RUN] Report not saved\n`);
