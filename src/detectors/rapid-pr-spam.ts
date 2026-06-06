@@ -13,8 +13,8 @@ export function detectRapidPRSpam(
   // Catches spam that doesn't correlate with branch creation
   const isEstablished = accountAge >= CONFIG.AGE_ESTABLISHED_ACCOUNT;
   const minRapidPRs = isEstablished
-    ? CONFIG.RAPID_PR_SPAM_MIN_PAIRS_ESTABLISHED
-    : CONFIG.RAPID_PR_SPAM_MIN_PAIRS;
+    ? CONFIG.RAPID_PR_SPAM_MIN_PRS_ESTABLISHED
+    : CONFIG.RAPID_PR_SPAM_MIN_PRS;
 
   const prEvents = events.filter(
     (e) => e.type === "PullRequestEvent" && e.payload?.action === "opened",
@@ -68,6 +68,7 @@ export function detectRapidPRSpam(
     }
   }
 
+  // Compare pairs to PR count - 1 (minRapidPRs represents number of PRs, which is pairs + 1)
   if (maxConsecutivePairs >= minRapidPRs - 1) {
     flags.push({
       label: "Rapid PR spam to repository",

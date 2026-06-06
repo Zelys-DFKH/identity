@@ -168,8 +168,8 @@ export const CONFIG = {
   POINTS_BRANCH_PR_AUTOMATION: 35, // strong automation indicator
 
   // Rapid PR spam (multiple PRs to same repo in rapid succession - fork spam pattern)
-  RAPID_PR_SPAM_MIN_PAIRS: 4, // need at least this many rapid successive PRs to flag (young accounts)
-  RAPID_PR_SPAM_MIN_PAIRS_ESTABLISHED: 6, // stricter threshold for established accounts
+  RAPID_PR_SPAM_MIN_PRS: 4, // need at least this many rapid successive PRs to flag (young accounts)
+  RAPID_PR_SPAM_MIN_PRS_ESTABLISHED: 6, // stricter threshold for established accounts
   POINTS_RAPID_PR_SPAM: 40, // fork spam attack indicator
 
   // Closed PR spam (many PRs closed across different repos - rejected/unwanted contributions)
