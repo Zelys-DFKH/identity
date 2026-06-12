@@ -43,6 +43,7 @@ export function detectClosedPRSpam(
 	);
 	const timeSpanMinutes = latestClosed.diff(earliestClosed, "minute");
 	const timeSpanDays = latestClosed.diff(earliestClosed, "day");
+	const fractionalDays = latestClosed.diff(earliestClosed, "day", true);
 	const timeRangeStr =
 		timeSpanDays > 0
 			? `${timeSpanDays}d`
@@ -83,9 +84,21 @@ export function detectClosedPRSpam(
 		points = CONFIG.POINTS_CLOSED_PR_SPAM_HIGH; // 25-99 PRs = high volume spam
 	}
 
-	// Pattern 1: Spray scatter - closed PRs across many repos (even if spread over time)
-	// This is the main indicator: rejected/unwanted code across the ecosystem
-	if (closedPRRepos.size >= CONFIG.CLOSED_PR_REPO_SPREAD) {
+	// Pattern 1: Spray scatter - closed PRs across many repos IN A BURST/CLUSTER
+	// Only flag if there's a clear cluster of rejections, not just spread activity
+	// Calculate PR density to ensure this is an actual spam burst, not just normal scattered contributions
+	const prDensity =
+		fractionalDays > 0
+			? closedPREvents.length / fractionalDays
+			: closedPREvents.length;
+	const hasSignificantBurst = burstDays.length > 0; // at least one day with 10+ rejections
+	const enoughPRsForSpread = closedPREvents.length >= 25; // if 25+ PRs, even if scattered, it's suspicious
+	const highDensity = prDensity >= 0.5; // at least 1 PR every 2 days or more frequent
+
+	if (
+		closedPRRepos.size >= CONFIG.CLOSED_PR_REPO_SPREAD &&
+		(hasSignificantBurst || enoughPRsForSpread || highDensity)
+	) {
 		flags.push({
 			label: "Closed PR spam scatter",
 			points,

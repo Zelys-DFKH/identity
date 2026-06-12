@@ -1,6 +1,6 @@
 {
 	"name": "@unveil/identity",
-	"version": "1.4.0",
+	"version": "1.5.1",
 	"type": "module",
 	"description": "Identify automation patterns in GitHub accounts through behavioral analysis",
 	"homepage": "https://github.com/unveil-project/identity#readme",
@@ -36,7 +36,7 @@
 		"regression-test:dry": "tsx scripts/regression-test.ts --dry-run",
 		"regression-analyze": "tsx benchmark/analyze-reports.ts",
 		"regression-analyze:full": "tsx benchmark/analyze-reports.ts --full",
-		"prepublishOnly": "vitest --run && pnpm run regression-test:dry && pnpm run build"
+		"prepublishOnly": "vitest --run && pnpm run build && pnpm run regression-test:dry && pnpm regression-test"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.16",
