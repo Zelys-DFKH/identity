@@ -102,6 +102,7 @@ export function detectClosedPRSpam(
 		flags.push({
 			label: "Closed PR spam scatter",
 			points,
+			amplifiable: true,
 			detail: `${closedPREvents.length} PRs were rejected across ${closedPRRepos.size} repositories in ${timeRangeStr}${burstStr}.`,
 		});
 		return flags;
@@ -120,6 +121,7 @@ export function detectClosedPRSpam(
 			flags.push({
 				label: "Closed PR spam burst",
 				points: burstPoints,
+				amplifiable: true,
 				detail: `${closedPREvents.length} PRs closed across ${closedPRRepos.size} repos in ${timeSpanMinutes}m (concentrated rejection/spam activity)`,
 			});
 		}
