@@ -216,7 +216,54 @@ export const CONFIG = {
 	CONSUMER_ONLY_EXTERNAL_MIN: 5, // need at least this many consumer events to flag
 	POINTS_CONSUMER_NO_RECIPROCITY: 15,
 
-	// AI commit metadata — amplifier, not a standalone signal
+	// ── Mitigating signals (negative points reduce bot score) ────────────────
+
+	// Merged PR contributions on external repos
+	MERGED_PR_REPOS_MIN: 3,
+	MERGED_PR_REPOS_HIGH: 8,
+	POINTS_ESTABLISHED_CONTRIBUTOR: -5,
+	POINTS_ESTABLISHED_CONTRIBUTOR_HIGH: -10,
+
+	// Review activity (PullRequestReviewEvent on external repos)
+	REVIEW_EVENTS_BASE: 5,
+	REVIEW_EVENTS_HIGH: 15,
+	POINTS_REVIEW_ACTIVITY: -5,
+	POINTS_REVIEW_ACTIVITY_HIGH: -10,
+
+	// Inline review comments (PullRequestReviewCommentEvent)
+	REVIEW_COMMENT_EVENTS_BASE: 3,
+	REVIEW_COMMENT_EVENTS_HIGH: 10,
+	POINTS_REVIEW_COMMENTS: -5,
+	POINTS_REVIEW_COMMENTS_HIGH: -10,
+
+	// Dormancy gap (max gap between consecutive events)
+	DORMANCY_GAP_DAYS: 30,
+	DORMANCY_GAP_LONG_DAYS: 60,
+	POINTS_DORMANCY_GAP: -5,
+	POINTS_DORMANCY_GAP_LONG: -10,
+
+	// Gist activity
+	POINTS_GIST_ACTIVITY: -5,
+
+	// PR iteration cycles (synchronize events on external repos)
+	PR_SYNC_REPOS_BASE: 2,
+	PR_SYNC_REPOS_HIGH: 5,
+	POINTS_PR_SYNC_BASE: -5,
+	POINTS_PR_SYNC_HIGH: -10,
+
+	// Long-span repo engagement
+	REPO_SPAN_MIN_DAYS: 120,
+	REPO_SPAN_BASE_COUNT: 2,
+	REPO_SPAN_HIGH_COUNT: 4,
+	POINTS_REPO_SPAN_BASE: -5,
+	POINTS_REPO_SPAN_HIGH: -10,
+
+	// Day-of-week activity variance (coefficient of variation)
+	DOW_EVENTS_MIN: 20,
+	DOW_VARIANCE_CV_MIN: 0.3,
+	POINTS_DOW_VARIANCE: -3,
+
+		// AI commit metadata — amplifier, not a standalone signal
 	// Multiplier applies only to flags marked `amplifiable: true` (automation/spam signals).
 	// Tiers are evaluated highest-first; the first matching ratio wins.
 	AI_COMMIT_MIN_COMMITS: 5,

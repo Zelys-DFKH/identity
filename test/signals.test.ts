@@ -2240,12 +2240,22 @@ describe("identify - Confidence Edge Cases", () => {
 		// Recently created (+20, eventBased:false) + Event monoculture (+20) = 40 → humanScore=60 → "mixed"
 		// 2 bot flags, 0 human flags → corroborating = min(2, 0) = 0 → confidence = 20
 		// reposCount=5 (≥ PERSONAL_REPOS_LOW) prevents "Mostly external activity" from firing
-		const ts = "2026-03-08T00:00:00Z";
-		const events = Array.from({ length: 30 }, () => ({
-			type: "IssueCommentEvent",
-			repo: { name: "other/repo" },
-			created_at: ts,
-		} as GitHubEvent));
+		// Events spread across all 7 days of week (CV ≈ 0.10) to stay below DOW_VARIANCE_CV_MIN (0.3)
+		const mk = (d: string, n: number) =>
+			Array.from({ length: n }, () => ({
+				type: "IssueCommentEvent",
+				repo: { name: "other/repo" },
+				created_at: d,
+			} as GitHubEvent));
+		const events = [
+			...mk("2026-03-04T10:00:00Z", 4), // Wed
+			...mk("2026-03-05T10:00:00Z", 4), // Thu
+			...mk("2026-03-06T10:00:00Z", 4), // Fri
+			...mk("2026-03-07T10:00:00Z", 5), // Sat
+			...mk("2026-03-08T10:00:00Z", 4), // Sun
+			...mk("2026-03-09T10:00:00Z", 4), // Mon
+			...mk("2026-03-10T10:00:00Z", 5), // Tue (fake now)
+		];
 		const result = identify({
 			createdAt: "2026-02-15T00:00:00Z",
 			reposCount: 5,

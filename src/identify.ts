@@ -23,6 +23,16 @@ import {
 	detectForkActivity,
 	detectForkCombinedActivity,
 } from "./detectors/fork-activity";
+import {
+	detectDayOfWeekVariance,
+	detectDormancyGap,
+	detectGistActivity,
+	detectLongSpanEngagement,
+	detectMergedContributions,
+	detectPRIterationCycles,
+	detectReviewActivity,
+	detectReviewCommentActivity,
+} from "./detectors/human-signals";
 import { detectExtremeAndDistributedPRSpam } from "./detectors/pr-spam";
 import { detectRapidPRSpam } from "./detectors/rapid-pr-spam";
 import { detectRepositoryCreationBurst } from "./detectors/repository-creation";
@@ -127,6 +137,14 @@ export function identify({
 
 	// Mitigating signals
 	flags.push(...detectAccountSeniority(accountAge));
+	flags.push(...detectMergedContributions(filteredEvents, accountName));
+	flags.push(...detectReviewActivity(filteredEvents, accountName));
+	flags.push(...detectReviewCommentActivity(filteredEvents, accountName));
+	flags.push(...detectDormancyGap(filteredEvents));
+	flags.push(...detectGistActivity(filteredEvents));
+	flags.push(...detectPRIterationCycles(filteredEvents, accountName));
+	flags.push(...detectLongSpanEngagement(filteredEvents, accountName));
+	flags.push(...detectDayOfWeekVariance(filteredEvents));
 
 	const filteredCommits = commits.filter(
 		(commit) =>
