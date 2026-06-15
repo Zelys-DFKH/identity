@@ -1,6 +1,6 @@
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
-import { CONFIG } from "../config";
+import { CONFIG, LABEL_ISSUE_BURST, LABEL_STAR_BURST, LABEL_STAR_FARM } from "../config";
 import type { GitHubEvent, IdentifyFlag, IdentifyProfile } from "../types";
 import { calculateNormalizedShannonsEntropy } from "../utils";
 
@@ -21,7 +21,7 @@ export function detectStarConcentration(events: GitHubEvent[]): IdentifyFlag[] {
 		pushAndPRCount <= CONFIG.WATCH_CONCENTRATION_PUSH_PR_MAX
 	) {
 		flags.push({
-			label: "Star farm pattern",
+			label: LABEL_STAR_FARM,
 			points: CONFIG.POINTS_STAR_CONCENTRATION,
 			amplifiable: true,
 			detail: `${Math.round(watchRatio * 100)}% of activity is starring with ≤${CONFIG.WATCH_CONCENTRATION_PUSH_PR_MAX} push/PR events`,
@@ -46,7 +46,7 @@ export function detectStarConcentration(events: GitHubEvent[]): IdentifyFlag[] {
 
 	if (maxInWindow >= CONFIG.WATCH_CONCENTRATION_BURST_MIN) {
 		flags.push({
-			label: "Star burst activity",
+			label: LABEL_STAR_BURST,
 			points: CONFIG.POINTS_STAR_CONCENTRATION_BURST,
 			amplifiable: true,
 			detail: `${maxInWindow} stars in a 24-hour window`,
@@ -74,10 +74,10 @@ export function detectEventMonoculture(events: GitHubEvent[]): IdentifyFlag[] {
 		"PullRequestReviewEvent",
 		"PullRequestReviewCommentEvent",
 	]);
-	if (
-		typeCounts.size <= 1 &&
-		!INTERACTION_TYPES.has([...typeCounts.keys()][0] ?? "")
-	)
+	// size === 0 → key[0] is undefined, ?? "" gives an empty string, which is not in
+	// INTERACTION_TYPES, so the whole condition is true and we return early — same as size === 1
+	// with a non-interaction type.
+	if (typeCounts.size <= 1 && !INTERACTION_TYPES.has([...typeCounts.keys()][0] ?? ""))
 		return flags;
 
 	const counts = Array.from(typeCounts.values());
@@ -175,7 +175,7 @@ export function detectIssueBurst(
 
 	if (maxRepos >= CONFIG.ISSUE_BURST_REPOS_MIN) {
 		flags.push({
-			label: "Issue burst",
+			label: LABEL_ISSUE_BURST,
 			points: CONFIG.POINTS_ISSUE_BURST,
 			amplifiable: true,
 			detail: `Issues opened across ${maxRepos} repositories within ${CONFIG.ISSUE_BURST_WINDOW_HOURS}h with no code contributions`,

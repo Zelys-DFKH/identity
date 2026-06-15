@@ -1,6 +1,6 @@
 import dayjs from "dayjs";
 import minMax from "dayjs/plugin/minMax";
-import { CONFIG } from "../config";
+import { CONFIG, LABEL_DISTRIBUTED_PR_SPAM, LABEL_PR_SPAM_DAILY, LABEL_PR_SPAM_WEEKLY, LABEL_PR_SPAM_WEEKLY_HIGH } from "../config";
 import type { GitHubEvent, IdentifyFlag } from "../types";
 
 dayjs.extend(minMax);
@@ -38,7 +38,7 @@ export function detectExtremeAndDistributedPRSpam(
 	// Extreme daily spam: 30+ PRs in 24 hours
 	if (prsInLastDay.length >= CONFIG.PRS_DAY_EXTREME) {
 		flags.push({
-			label: "Extreme PR spam (daily)",
+			label: LABEL_PR_SPAM_DAILY,
 			points: CONFIG.POINTS_PRS_DAY_EXTREME,
 			amplifiable: true,
 			detail: `${prsInLastDay.length} PRs in the last 24 hours`,
@@ -48,7 +48,7 @@ export function detectExtremeAndDistributedPRSpam(
 	// Extreme weekly spam: 100+ PRs in 7 days
 	if (prsInLastWeek.length >= CONFIG.PRS_WEEK_EXTREME) {
 		flags.push({
-			label: "Extreme PR spam (weekly)",
+			label: LABEL_PR_SPAM_WEEKLY,
 			points: CONFIG.POINTS_PRS_WEEK_EXTREME,
 			amplifiable: true,
 			detail: `${prsInLastWeek.length} PRs in the last 7 days`,
@@ -57,7 +57,7 @@ export function detectExtremeAndDistributedPRSpam(
 	// Very high weekly spam: 50+ PRs in 7 days (only if not already extreme)
 	else if (prsInLastWeek.length >= CONFIG.PRS_WEEK_VERY_HIGH) {
 		flags.push({
-			label: "Very high PR spam frequency",
+			label: LABEL_PR_SPAM_WEEKLY_HIGH,
 			points: CONFIG.POINTS_PRS_WEEK_VERY_HIGH,
 			amplifiable: true,
 			detail: `${prsInLastWeek.length} PRs in the last 7 days`,
@@ -115,7 +115,7 @@ export function detectExtremeAndDistributedPRSpam(
 
 				if (isHighDensity || isRolling30DaySpam) {
 					flags.push({
-						label: "Distributed PR spam pattern",
+						label: LABEL_DISTRIBUTED_PR_SPAM,
 						points: CONFIG.POINTS_PR_SPAM_DISTRIBUTED,
 						amplifiable: true,
 						detail: `${allPREvents.length} PRs spread across ${prTargetRepos.size} different repositories${timeSpanDays > 0 ? ` (${prsPerWeek.toFixed(1)} PRs/week)` : ""}`,

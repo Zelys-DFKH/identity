@@ -1,5 +1,5 @@
 import dayjs from "dayjs";
-import { CONFIG } from "../config";
+import { CONFIG, LABEL_ISSUE_COMMENT_SPAM, LABEL_PR_COMMENT_SPAM } from "../config";
 import type { GitHubEvent, IdentifyFlag } from "../types";
 
 export function detectCommentSpam(events: GitHubEvent[]): IdentifyFlag[] {
@@ -70,7 +70,7 @@ export function detectCommentSpam(events: GitHubEvent[]): IdentifyFlag[] {
 					? Math.round(windowEnd.diff(windowStart, "minute", true))
 					: 0;
 			flags.push({
-				label: "Issue comment spam",
+				label: LABEL_ISSUE_COMMENT_SPAM,
 				points: CONFIG.POINTS_ISSUE_COMMENT_SPRAY_EXTREME,
 				amplifiable: true,
 				detail: `${commentsInWindow} comments to ${maxDistinctReposInWindow} different repos in just ${timeSpanMinutes} minute${timeSpanMinutes === 1 ? "" : "s"}`,
@@ -164,7 +164,7 @@ export function detectCommentSpam(events: GitHubEvent[]): IdentifyFlag[] {
 					? Math.round(windowEnd.diff(windowStart, "minute", true))
 					: 0;
 			flags.push({
-				label: "PR comment spam",
+				label: LABEL_PR_COMMENT_SPAM,
 				points: CONFIG.POINTS_PR_COMMENT_SPRAY_EXTREME,
 				amplifiable: true,
 				detail: `${commentsInWindow} comments on ${maxDistinctPRsInWindow} different PRs in just ${timeSpanMinutes} minute${timeSpanMinutes === 1 ? "" : "s"}`,
