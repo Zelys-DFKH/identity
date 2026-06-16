@@ -188,6 +188,34 @@ export const CONFIG = {
 	POINTS_SENIOR_ACCOUNT: -10,
 	POINTS_VETERAN_ACCOUNT: -10,
 
+	// Star farm / star burst detection
+	WATCH_CONCENTRATION_RATIO: 0.8, // >= this fraction of events are WatchEvents = star farm
+	WATCH_CONCENTRATION_PUSH_PR_MAX: 2, // <= this push/PR count alongside high watch ratio = farm
+	POINTS_STAR_CONCENTRATION: 20,
+	WATCH_CONCENTRATION_BURST_MIN: 10, // >= this watches in 24h = burst
+	POINTS_STAR_CONCENTRATION_BURST: 25,
+
+	// Event type monoculture (low-entropy activity)
+	MONOCULTURE_MIN_EVENTS: 30, // need at least this many events to analyze entropy
+	MONOCULTURE_MAX_ENTROPY: 0.25, // normalized Shannon entropy <= this = monoculture
+	POINTS_MONOCULTURE: 20,
+
+	// Thin profile bot (multiple absent/minimal profile signals)
+	THIN_PROFILE_FOLLOWERS_MAX: 1, // followers <= this = indicator
+	THIN_PROFILE_REPOS_MAX: 1, // repos <= this = indicator
+	THIN_PROFILE_INDICATORS_MIN: 4, // need >= this indicators out of 7 to flag
+	POINTS_THIN_PROFILE_BOT: 20,
+
+	// Issue burst (many issues across many repos with no code contributions)
+	ISSUE_BURST_COUNT_MIN: 8, // need at least this many external issue-open events
+	ISSUE_BURST_WINDOW_HOURS: 72, // time window for repo spread measurement
+	ISSUE_BURST_REPOS_MIN: 5, // >= this different repos within window = burst
+	POINTS_ISSUE_BURST: 25,
+
+	// Consumer with no reciprocity (only stars/forks, no external contributions)
+	CONSUMER_ONLY_EXTERNAL_MIN: 5, // need at least this many consumer events to flag
+	POINTS_CONSUMER_NO_RECIPROCITY: 15,
+
 	// AI commit metadata — amplifier, not a standalone signal
 	// Multiplier applies only to flags marked `amplifiable: true` (automation/spam signals).
 	// Tiers are evaluated highest-first; the first matching ratio wins.
