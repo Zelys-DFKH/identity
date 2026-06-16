@@ -1,5 +1,5 @@
 import dayjs from "dayjs";
-import { CONFIG } from "../config";
+import { CONFIG, LABEL_CLOSED_PR_SPAM_BURST, LABEL_CLOSED_PR_SPAM_SCATTER } from "../config";
 import type { GitHubEvent, IdentifyFlag } from "../types";
 
 export function detectClosedPRSpam(
@@ -100,7 +100,7 @@ export function detectClosedPRSpam(
 		(hasSignificantBurst || enoughPRsForSpread || highDensity)
 	) {
 		flags.push({
-			label: "Closed PR spam scatter",
+			label: LABEL_CLOSED_PR_SPAM_SCATTER,
 			points,
 			amplifiable: true,
 			detail: `${closedPREvents.length} PRs were rejected across ${closedPRRepos.size} repositories in ${timeRangeStr}${burstStr}.`,
@@ -119,7 +119,7 @@ export function detectClosedPRSpam(
 					: points;
 
 			flags.push({
-				label: "Closed PR spam burst",
+				label: LABEL_CLOSED_PR_SPAM_BURST,
 				points: burstPoints,
 				amplifiable: true,
 				detail: `${closedPREvents.length} PRs closed across ${closedPRRepos.size} repos in ${timeSpanMinutes}m (concentrated rejection/spam activity)`,

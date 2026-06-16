@@ -145,7 +145,7 @@ export const CONFIG = {
 	// Issue comment spam (multiple comments to different repos in short timeframe)
 	ISSUE_COMMENT_SPAM_WINDOW_MINUTES: 2, // time window to group comments
 	ISSUE_COMMENT_SPRAY_EXTREME: 15, // >= this different repos = comment spray bot
-	ISSUE_COMMENT_SPRAY_HIGH: 10, // >= this different repos in short window = suspicious
+	ISSUE_COMMENT_SPRAY_HIGH: 6, // >= this different repos in short window = suspicious
 	ISSUE_COMMENT_MIN_FOR_SPRAY: 10, // need at least this many comments to analyze
 	POINTS_ISSUE_COMMENT_SPRAY_EXTREME: 40,
 	POINTS_ISSUE_COMMENT_SPRAY_HIGH: 30,
@@ -182,7 +182,108 @@ export const CONFIG = {
 	POINTS_CLOSED_PR_SPAM_EXTREME: 75, // 100+ closed PRs = extreme volume ecosystem-wide spam
 	POINTS_CLOSED_PR_SPAM_BURST_EXTREME: 80, // 100+ closed PRs in burst = coordinated attack
 
-	// AI commit metadata — amplifier, not a standalone signal
+	// Follower count
+	FOLLOWERS_BASE: 50,
+	FOLLOWERS_HIGH: 200,
+	POINTS_FOLLOWERS_BASE: -5,
+	POINTS_FOLLOWERS_HIGH: -10,
+
+	// Profile completeness
+	IDENTITY_FIELDS_BASE: 3,
+	IDENTITY_FIELDS_ALL: 5,
+	IDENTITY_BIO_MIN_LENGTH: 20,
+	POINTS_IDENTITY_BASE: -5,
+	POINTS_IDENTITY_HIGH: -10,
+
+	// Pre-AI development history (repos created before cutoff year)
+	PRE_AI_REPOS_YEAR: 2025,
+	PRE_AI_REPOS_MIN: 3,
+	PRE_AI_REPOS_HIGH: 8,
+	POINTS_PRE_AI_REPOS: -10,
+	POINTS_PRE_AI_REPOS_HIGH: -20,
+
+	// ── Account seniority (mitigating signal) ────────────────────────────────
+	AGE_SENIOR_ACCOUNT: 1095, // 3+ years
+	AGE_VETERAN_ACCOUNT: 1825, // 5+ years
+	POINTS_SENIOR_ACCOUNT: -10,
+	POINTS_VETERAN_ACCOUNT: -10,
+
+	// Star farm / star burst detection
+	WATCH_CONCENTRATION_RATIO: 0.8, // >= this fraction of events are WatchEvents = star farm
+	WATCH_CONCENTRATION_PUSH_PR_MAX: 2, // <= this push/PR count alongside high watch ratio = farm
+	POINTS_STAR_CONCENTRATION: 20,
+	WATCH_CONCENTRATION_BURST_MIN: 10, // >= this watches in 24h = burst
+	POINTS_STAR_CONCENTRATION_BURST: 25,
+
+	// Event type monoculture (low-entropy activity)
+	MONOCULTURE_MIN_EVENTS: 30, // need at least this many events to analyze entropy
+	MONOCULTURE_MAX_ENTROPY: 0.25, // normalized Shannon entropy <= this = monoculture
+	POINTS_MONOCULTURE: 20,
+
+	// Thin profile bot (multiple absent/minimal profile signals)
+	THIN_PROFILE_FOLLOWERS_MAX: 1, // followers <= this = indicator
+	THIN_PROFILE_REPOS_MAX: 1, // repos <= this = indicator
+	THIN_PROFILE_INDICATORS_MIN: 4, // need >= this indicators out of 7 to flag
+	POINTS_THIN_PROFILE_BOT: 20,
+
+	// Issue burst (many issues across many repos with no code contributions)
+	ISSUE_BURST_COUNT_MIN: 8, // need at least this many external issue-open events
+	ISSUE_BURST_WINDOW_HOURS: 72, // time window for repo spread measurement
+	ISSUE_BURST_REPOS_MIN: 5, // >= this different repos within window = burst
+	POINTS_ISSUE_BURST: 25,
+
+	// Consumer with no reciprocity (only stars/forks, no external contributions)
+	CONSUMER_ONLY_EXTERNAL_MIN: 5, // need at least this many consumer events to flag
+	POINTS_CONSUMER_NO_RECIPROCITY: 15,
+
+	// ── Mitigating signals (negative points reduce bot score) ────────────────
+
+	// Merged PR contributions on external repos
+	MERGED_PR_REPOS_MIN: 3,
+	MERGED_PR_REPOS_HIGH: 8,
+	POINTS_ESTABLISHED_CONTRIBUTOR: -5,
+	POINTS_ESTABLISHED_CONTRIBUTOR_HIGH: -10,
+
+	// Review activity (PullRequestReviewEvent on external repos)
+	REVIEW_EVENTS_BASE: 5,
+	REVIEW_EVENTS_HIGH: 15,
+	POINTS_REVIEW_ACTIVITY: -5,
+	POINTS_REVIEW_ACTIVITY_HIGH: -10,
+
+	// Inline review comments (PullRequestReviewCommentEvent)
+	REVIEW_COMMENT_EVENTS_BASE: 3,
+	REVIEW_COMMENT_EVENTS_HIGH: 10,
+	POINTS_REVIEW_COMMENTS: -5,
+	POINTS_REVIEW_COMMENTS_HIGH: -10,
+
+	// Dormancy gap (max gap between consecutive events)
+	DORMANCY_GAP_DAYS: 30,
+	DORMANCY_GAP_LONG_DAYS: 60,
+	POINTS_DORMANCY_GAP: -5,
+	POINTS_DORMANCY_GAP_LONG: -10,
+
+	// Gist activity
+	POINTS_GIST_ACTIVITY: -5,
+
+	// PR iteration cycles (synchronize events on external repos)
+	PR_SYNC_REPOS_BASE: 2,
+	PR_SYNC_REPOS_HIGH: 5,
+	POINTS_PR_SYNC_BASE: -5,
+	POINTS_PR_SYNC_HIGH: -10,
+
+	// Long-span repo engagement
+	REPO_SPAN_MIN_DAYS: 120,
+	REPO_SPAN_BASE_COUNT: 2,
+	REPO_SPAN_HIGH_COUNT: 4,
+	POINTS_REPO_SPAN_BASE: -5,
+	POINTS_REPO_SPAN_HIGH: -10,
+
+	// Day-of-week activity variance (coefficient of variation)
+	DOW_EVENTS_MIN: 20,
+	DOW_VARIANCE_CV_MIN: 0.3,
+	POINTS_DOW_VARIANCE: -3,
+
+		// AI commit metadata — amplifier, not a standalone signal
 	// Multiplier applies only to flags marked `amplifiable: true` (automation/spam signals).
 	// Tiers are evaluated highest-first; the first matching ratio wins.
 	AI_COMMIT_MIN_COMMITS: 5,
@@ -191,4 +292,55 @@ export const CONFIG = {
 		{ ratio: 0.85, multiplier: 1.3 },
 		{ ratio: 0.75, multiplier: 1.15 },
 	],
+
+	// Temporal event degradation: bot-signal scores decay with exponential half-life (days).
+	TEMPORAL_DECAY_HALF_LIFE_DAYS: 90,
 } as const;
+
+// Known legitimate automation tools — bypass bot detection and classify as "legitimate_automation".
+export const KNOWN_BOT_ACCOUNTS = new Set([
+	"dependabot",
+	"renovate",
+	"renovatebot",
+	"github-actions",
+	"codecov",
+	"snyk-bot",
+	"allcontributors",
+	"imgbot",
+	"semantic-release-bot",
+	"stale",
+	"greenkeeper",
+	"socket-security",
+	"whitesource-bolt-for-github",
+	"restyled-io",
+]);
+
+// Spam-signal label constants — import these in detectors instead of inlining the strings,
+// so a label rename here is caught by the compiler rather than silently breaking likely_spam.
+export const LABEL_STAR_FARM = "Star farm pattern";
+export const LABEL_STAR_BURST = "Star burst activity";
+export const LABEL_ISSUE_BURST = "Issue burst";
+export const LABEL_ISSUE_COMMENT_SPAM = "Issue comment spam";
+export const LABEL_PR_COMMENT_SPAM = "PR comment spam";
+export const LABEL_RAPID_PR_SPAM = "Rapid PR spam to repository";
+export const LABEL_DISTRIBUTED_PR_SPAM = "Distributed PR spam pattern";
+export const LABEL_PR_SPAM_DAILY = "Extreme PR spam (daily)";
+export const LABEL_PR_SPAM_WEEKLY = "Extreme PR spam (weekly)";
+export const LABEL_PR_SPAM_WEEKLY_HIGH = "Very high PR spam frequency";
+export const LABEL_CLOSED_PR_SPAM_BURST = "Closed PR spam burst";
+export const LABEL_CLOSED_PR_SPAM_SCATTER = "Closed PR spam scatter";
+
+export const SPAM_SIGNAL_LABELS = new Set([
+	LABEL_STAR_FARM,
+	LABEL_STAR_BURST,
+	LABEL_ISSUE_BURST,
+	LABEL_ISSUE_COMMENT_SPAM,
+	LABEL_PR_COMMENT_SPAM,
+	LABEL_RAPID_PR_SPAM,
+	LABEL_DISTRIBUTED_PR_SPAM,
+	LABEL_PR_SPAM_DAILY,
+	LABEL_PR_SPAM_WEEKLY,
+	LABEL_PR_SPAM_WEEKLY_HIGH,
+	LABEL_CLOSED_PR_SPAM_BURST,
+	LABEL_CLOSED_PR_SPAM_SCATTER,
+]);

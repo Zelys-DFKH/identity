@@ -1,3 +1,10 @@
+import type { GitHubEvent } from "./types";
+
+export function isExternalEvent(e: GitHubEvent, accountName: string): boolean {
+	const owner = e.repo?.name?.split("/")[0]?.toLowerCase();
+	return !!owner && owner !== accountName.toLowerCase();
+}
+
 /**
  * Calculate Shannon's entropy of a probability distribution
  * Lower entropy = more concentrated/predictable (bot-like)
@@ -32,4 +39,25 @@ export function calculateNormalizedShannonsEntropy(counts: number[]): number {
 	const maxEntropy = Math.log2(counts.length);
 
 	return entropy / maxEntropy;
+}
+
+// Returns the mean exponential decay weight for a set of events; lower = activity is mostly old.
+export function computeActivityRecencyMultiplier(
+	events: Array<{ created_at?: string | null }>,
+	halfLifeDays: number,
+): number {
+	if (events.length === 0) return 1;
+	if (!Number.isFinite(halfLifeDays) || halfLifeDays <= 0) return 1;
+	const now = Date.now();
+	let total = 0;
+	for (const e of events) {
+		const t = e.created_at ? new Date(e.created_at).getTime() : NaN;
+		if (!e.created_at || Number.isNaN(t)) {
+			total += 1;
+			continue;
+		}
+		const ageDays = Math.max(0, (now - t) / (1000 * 60 * 60 * 24));
+		total += Math.exp((-Math.LN2 * ageDays) / halfLifeDays);
+	}
+	return total / events.length;
 }

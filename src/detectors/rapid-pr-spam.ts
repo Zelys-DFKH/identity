@@ -1,5 +1,5 @@
 import dayjs from "dayjs";
-import { CONFIG } from "../config";
+import { CONFIG, LABEL_RAPID_PR_SPAM } from "../config";
 import type { GitHubEvent, IdentifyFlag } from "../types";
 
 export function detectRapidPRSpam(
@@ -71,7 +71,7 @@ export function detectRapidPRSpam(
 	// Compare pairs to PR count - 1 (minRapidPRs represents number of PRs, which is pairs + 1)
 	if (maxConsecutivePairs >= minRapidPRs - 1) {
 		flags.push({
-			label: "Rapid PR spam to repository",
+			label: LABEL_RAPID_PR_SPAM,
 			points: CONFIG.POINTS_RAPID_PR_SPAM,
 			amplifiable: true,
 			detail: `${maxConsecutivePairs + 1} PRs opened to ${spammyRepo} within ${maxConsecutiveTimeDiff}s intervals`,
