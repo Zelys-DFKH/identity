@@ -5,16 +5,16 @@ import { makeEvent } from "./utils/get-fixtures";
 
 const date = new Date(2026, 2, 10, 12);
 
+beforeEach(() => {
+	vi.useFakeTimers();
+	vi.setSystemTime(date);
+});
+
+afterEach(() => {
+	vi.useRealTimers();
+});
+
 describe("identify - Account Age Flags", () => {
-	beforeEach(() => {
-		vi.useFakeTimers();
-		vi.setSystemTime(date);
-	});
-
-	afterEach(() => {
-		vi.useRealTimers();
-	});
-
 	it("should flag recently created accounts (< 30 days old)", () => {
 		const recentDate = new Date(2026, 2, 5); // 5 days old
 		const result = identify({
@@ -60,15 +60,6 @@ describe("identify - Account Age Flags", () => {
 });
 
 describe("identify - Zero Repos & External Activity", () => {
-	beforeEach(() => {
-		vi.useFakeTimers();
-		vi.setSystemTime(date);
-	});
-
-	afterEach(() => {
-		vi.useRealTimers();
-	});
-
 	it("should flag accounts with no personal repos but external activity", () => {
 		const events: GitHubEvent[] = [];
 		// Need ZERO_REPOS_MIN_EVENTS (20) events for the flag to trigger
@@ -103,15 +94,6 @@ describe("identify - Zero Repos & External Activity", () => {
 });
 
 describe("identify - Fork Surge Detection", () => {
-	beforeEach(() => {
-		vi.useFakeTimers();
-		vi.setSystemTime(date);
-	});
-
-	afterEach(() => {
-		vi.useRealTimers();
-	});
-
 	it("should flag multiple forks (5-7 in 24 hours)", () => {
 		const events: GitHubEvent[] = [];
 		for (let i = 0; i < 6; i++) {
@@ -298,15 +280,6 @@ describe("identify - Fork Surge Detection", () => {
 });
 
 describe("identify - Repository Creation Patterns", () => {
-	beforeEach(() => {
-		vi.useFakeTimers();
-		vi.setSystemTime(date);
-	});
-
-	afterEach(() => {
-		vi.useRealTimers();
-	});
-
 	it("should flag frequent repository creation (8+ repos in 24 hours)", () => {
 		const events: GitHubEvent[] = [];
 		// Create 8 repo creation events - using UTC to avoid timezone issues
@@ -407,15 +380,6 @@ describe("identify - Repository Creation Patterns", () => {
 });
 
 describe("identify - Activity Pattern Detection", () => {
-	beforeEach(() => {
-		vi.useFakeTimers();
-		vi.setSystemTime(date);
-	});
-
-	afterEach(() => {
-		vi.useRealTimers();
-	});
-
 	it("should flag 24/7 activity pattern (< 3 hours sleep on single day)", () => {
 		const events: GitHubEvent[] = [];
 		// Simulate activity across 22 hours with only 1 hour gap
@@ -474,15 +438,6 @@ describe("identify - Activity Pattern Detection", () => {
 });
 
 describe("identify - Narrow Activity Focus", () => {
-	beforeEach(() => {
-		vi.useFakeTimers();
-		vi.setSystemTime(date);
-	});
-
-	afterEach(() => {
-		vi.useRealTimers();
-	});
-
 	it("should flag narrow activity focus (few event types, no interactions)", () => {
 		const events: GitHubEvent[] = [];
 		for (let i = 0; i < 15; i++) {
@@ -537,15 +492,6 @@ describe("identify - Narrow Activity Focus", () => {
 });
 
 describe("identify - Score Calculation", () => {
-	beforeEach(() => {
-		vi.useFakeTimers();
-		vi.setSystemTime(date);
-	});
-
-	afterEach(() => {
-		vi.useRealTimers();
-	});
-
 	it("should calculate score as 100 minus sum of all flag points", () => {
 		const events: GitHubEvent[] = [];
 		// Create fork spike to add points
@@ -617,15 +563,6 @@ describe("identify - Score Calculation", () => {
 });
 
 describe("identify - Classification", () => {
-	beforeEach(() => {
-		vi.useFakeTimers();
-		vi.setSystemTime(date);
-	});
-
-	afterEach(() => {
-		vi.useRealTimers();
-	});
-
 	it("should classify as organic when score >= 70", () => {
 		const result = identify({
 			createdAt: "2025-01-01T00:00:00Z",
@@ -700,15 +637,6 @@ describe("identify - Classification", () => {
 });
 
 describe("identify - Profile Information", () => {
-	beforeEach(() => {
-		vi.useFakeTimers();
-		vi.setSystemTime(date);
-	});
-
-	afterEach(() => {
-		vi.useRealTimers();
-	});
-
 	it("should include correct account age in profile", () => {
 		const createdAt = "2025-12-01T00:00:00Z"; // ~100 days ago
 		const result = identify({
@@ -735,15 +663,6 @@ describe("identify - Profile Information", () => {
 });
 
 describe("identify - Issue Comment Spam Detection", () => {
-	beforeEach(() => {
-		vi.useFakeTimers();
-		vi.setSystemTime(date);
-	});
-
-	afterEach(() => {
-		vi.useRealTimers();
-	});
-
 	it("should flag extreme issue comment spam (15+ repos in 2 minutes)", () => {
 		const events: GitHubEvent[] = [];
 		// Create 15 issue comment events on different repos within 2 minutes
@@ -1086,15 +1005,6 @@ describe("identify - Issue Comment Spam Detection", () => {
 });
 
 describe("identify - PR Comment Spam Detection", () => {
-	beforeEach(() => {
-		vi.useFakeTimers();
-		vi.setSystemTime(date);
-	});
-
-	afterEach(() => {
-		vi.useRealTimers();
-	});
-
 	it("should flag extreme PR comment spam (12+ PRs in 2 minutes)", () => {
 		const events: GitHubEvent[] = [];
 		// Create 12 PR comment events on different PRs within 2 minutes
@@ -1431,15 +1341,6 @@ describe("identify - PR Comment Spam Detection", () => {
 });
 
 describe("identify - Extreme PR Spam Detection (Time-Based)", () => {
-	beforeEach(() => {
-		vi.useFakeTimers();
-		vi.setSystemTime(date);
-	});
-
-	afterEach(() => {
-		vi.useRealTimers();
-	});
-
 	it("should flag extreme daily PR spam (30+ PRs in 24 hours)", () => {
 		const events: GitHubEvent[] = [];
 
@@ -1629,15 +1530,6 @@ describe("identify - Extreme PR Spam Detection (Time-Based)", () => {
 });
 
 describe("identify - Repository Exclusion Filter", () => {
-	beforeEach(() => {
-		vi.useFakeTimers();
-		vi.setSystemTime(date);
-	});
-
-	afterEach(() => {
-		vi.useRealTimers();
-	});
-
 	it("should exclude events from filtered repositories and not flag them", () => {
 		const events: GitHubEvent[] = [];
 		// Create 10 fork events on excluded repo and 2 on other repos
@@ -1917,15 +1809,6 @@ describe("identify - Repository Exclusion Filter", () => {
 });
 
 describe("identify - Known Bot Whitelist", () => {
-	beforeEach(() => {
-		vi.useFakeTimers();
-		vi.setSystemTime(date);
-	});
-
-	afterEach(() => {
-		vi.useRealTimers();
-	});
-
 	it("classifies dependabot as legitimate_automation with no flags and score 0", () => {
 		const result = identify({
 			createdAt: "2020-01-01T00:00:00Z",
@@ -1971,15 +1854,6 @@ describe("identify - Known Bot Whitelist", () => {
 });
 
 describe("identify - Automation Type Classification", () => {
-	beforeEach(() => {
-		vi.useFakeTimers();
-		vi.setSystemTime(date);
-	});
-
-	afterEach(() => {
-		vi.useRealTimers();
-	});
-
 	it("classifies accounts below suspicious threshold without spam signals as automation", () => {
 		// 0 repos + 20 foreign events triggers zero-repos flag but no spam labels
 		const ts = "2026-03-08T00:00:00Z";
@@ -2020,15 +1894,6 @@ describe("identify - Automation Type Classification", () => {
 });
 
 describe("identify - Confidence Scoring", () => {
-	beforeEach(() => {
-		vi.useFakeTimers();
-		vi.setSystemTime(date);
-	});
-
-	afterEach(() => {
-		vi.useRealTimers();
-	});
-
 	it("returns confidence 99 for whitelisted bots", () => {
 		const result = identify({
 			createdAt: "2020-01-01T00:00:00Z",
@@ -2092,15 +1957,6 @@ describe("identify - Confidence Scoring", () => {
 });
 
 describe("identify - Temporal Event Degradation", () => {
-	beforeEach(() => {
-		vi.useFakeTimers();
-		vi.setSystemTime(date);
-	});
-
-	afterEach(() => {
-		vi.useRealTimers();
-	});
-
 	it("does not decay mitigating signals (negative-point flags are unaffected)", () => {
 		const oldTs = "2025-09-11T00:00:00Z";
 		const makeWatchEvent = (ts: string): GitHubEvent => makeEvent("WatchEvent", "other/popular-repo", ts);
@@ -2157,15 +2013,6 @@ describe("identify - Temporal Event Degradation", () => {
 });
 
 describe("identify - Known Bot Whitelist (edge cases)", () => {
-	beforeEach(() => {
-		vi.useFakeTimers();
-		vi.setSystemTime(date);
-	});
-
-	afterEach(() => {
-		vi.useRealTimers();
-	});
-
 	it("classifies uppercase bot name as legitimate_automation", () => {
 		const result = identify({
 			createdAt: "2020-01-01T00:00:00Z",
@@ -2179,15 +2026,6 @@ describe("identify - Known Bot Whitelist (edge cases)", () => {
 });
 
 describe("identify - Classification Thresholds", () => {
-	beforeEach(() => {
-		vi.useFakeTimers();
-		vi.setSystemTime(date);
-	});
-
-	afterEach(() => {
-		vi.useRealTimers();
-	});
-
 	it("classifies accounts at exactly THRESHOLD_HUMAN (70) as organic", () => {
 		// Score: Established account (-10) + Long-standing account (-10) + Has followers (-5) = -25 total.
 		// humanScore = 100 - (-25) = 125, capped at 100 → "organic".
@@ -2263,15 +2101,6 @@ describe("identify - Classification Thresholds", () => {
 });
 
 describe("identify - Confidence Edge Cases", () => {
-	beforeEach(() => {
-		vi.useFakeTimers();
-		vi.setSystemTime(date);
-	});
-
-	afterEach(() => {
-		vi.useRealTimers();
-	});
-
 	it("returns confidence 20 when classification is mixed but no corroborating signals exist", () => {
 		// Recently created (+20, eventBased:false) + Event monoculture (+20) = 40 → humanScore=60 → "mixed"
 		// 2 bot flags, 0 human flags → corroborating = min(2, 0) = 0 → confidence = 20
@@ -2304,15 +2133,6 @@ describe("identify - Confidence Edge Cases", () => {
 });
 
 describe("identify - SPAM_SIGNAL_LABELS coverage", () => {
-	beforeEach(() => {
-		vi.useFakeTimers();
-		vi.setSystemTime(date);
-	});
-
-	afterEach(() => {
-		vi.useRealTimers();
-	});
-
 	it("classifies 'Extreme PR spam (weekly)' label as likely_spam", () => {
 		// 100 PRs over 5 days (20/day), latest=2026-03-08 → 20 in last 24h < 30 (no daily); 100 >= 100 in 7d → weekly extreme
 		const events: GitHubEvent[] = Array.from({ length: 100 }, (_, i) => ({
