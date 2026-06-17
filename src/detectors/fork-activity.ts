@@ -11,8 +11,7 @@ dayjs.extend(minMax);
 export function detectForkActivity(events: GitHubEvent[]): IdentifyFlag[] {
 	const flags: IdentifyFlag[] = [];
 
-	// Fork surge - applies uniformly to all accounts (detects time-based spike in forking)
-	// Spam is spam: 8+ forks in 24 hours is bot behavior regardless of account age
+	// Detects time-based fork spikes (8+ in 24h is bot behavior regardless of age)
 	const forkEvents = events.filter((e) => e.type === "ForkEvent");
 
 	if (forkEvents.length < CONFIG.FORKS_HIGH) {

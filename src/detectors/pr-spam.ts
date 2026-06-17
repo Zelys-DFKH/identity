@@ -11,8 +11,7 @@ export function detectExtremeAndDistributedPRSpam(
 ): IdentifyFlag[] {
 	const flags: IdentifyFlag[] = [];
 
-	// Extreme PR spam detection - TIME-WINDOWED (applies to all accounts)
-	// Spam is about intensity/velocity, not total count
+	// Extreme PR spam detection: time-windowed; spam is about intensity/velocity
 	if (events.length < CONFIG.MIN_EVENTS_FOR_ANALYSIS) {
 		return flags;
 	}
@@ -63,8 +62,7 @@ export function detectExtremeAndDistributedPRSpam(
 		});
 	}
 
-	// Distributed PR spam: high PR count across many repos
-	// Only check if not already flagged by time-based detection
+	// Distributed PR spam: high PR count across many repos (skip if time-based flag present)
 	if (allPREvents.length >= CONFIG.PRS_SPAM_VOLUME) {
 		const hasTimeBasedFlag = flags.some(
 			(f) =>

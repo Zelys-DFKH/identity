@@ -284,8 +284,7 @@ export const CONFIG = {
 	POINTS_DOW_VARIANCE: -3,
 
 		// AI commit metadata — amplifier, not a standalone signal
-	// Multiplier applies only to flags marked `amplifiable: true` (automation/spam signals).
-	// Tiers are evaluated highest-first; the first matching ratio wins.
+	// Multiplier applies only to amplifiable:true flags; highest-ratio-first wins.
 	AI_COMMIT_MIN_COMMITS: 5,
 	AI_COMMIT_TIERS: [
 		{ ratio: 0.9, multiplier: 1.5 },
@@ -315,8 +314,7 @@ export const KNOWN_BOT_ACCOUNTS = new Set([
 	"restyled-io",
 ]);
 
-// Spam-signal label constants — import these in detectors instead of inlining the strings,
-// so a label rename here is caught by the compiler rather than silently breaking likely_spam.
+// Spam-signal label constants: import in detectors to catch renames at compile time
 export const LABEL_STAR_FARM = "Star farm pattern";
 export const LABEL_STAR_BURST = "Star burst activity";
 export const LABEL_ISSUE_BURST = "Issue burst";

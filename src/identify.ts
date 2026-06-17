@@ -196,8 +196,7 @@ export function identify({
 		let effective = flag.amplifiable
 			? Math.round(flag.points * multiplier)
 			: flag.points;
-		// Decay applies only when effective > 0 — negative-point (mitigating) flags are exempt
-		// by that guard alone, so eventBased: false is only meaningful on positive-point flags.
+		// Decay only when effective>0; eventBased:false only matters for positive-point flags
 		if (effective > 0 && flag.eventBased !== false) effective = Math.round(effective * recencyMultiplier);
 		return total + effective;
 	}, 0);

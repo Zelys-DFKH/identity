@@ -65,18 +65,13 @@ export function detectEventMonoculture(events: GitHubEvent[]): IdentifyFlag[] {
 		if (e.type) typeCounts.set(e.type, (typeCounts.get(e.type) ?? 0) + 1);
 	}
 
-	// Single-type interaction accounts (IssueCommentEvent-only bots, etc.) must not be
-	// skipped here: detectNarrowActivityFocus exempts interaction-heavy streams, so they
-	// would go entirely undetected. Non-interaction single-type accounts are caught by
-	// detectNarrowActivityFocus and are correctly excluded to avoid double-flagging.
+	// Single-type interaction accounts must not be skipped (detectNarrowActivityFocus exempts them)
 	const INTERACTION_TYPES = new Set([
 		"IssueCommentEvent",
 		"PullRequestReviewEvent",
 		"PullRequestReviewCommentEvent",
 	]);
-	// size === 0 → key[0] is undefined, ?? "" gives an empty string, which is not in
-	// INTERACTION_TYPES, so the whole condition is true and we return early — same as size === 1
-	// with a non-interaction type.
+	// size===0 → undefined → "" → not in INTERACTION_TYPES, so return early
 	if (typeCounts.size <= 1 && !INTERACTION_TYPES.has([...typeCounts.keys()][0] ?? ""))
 		return flags;
 

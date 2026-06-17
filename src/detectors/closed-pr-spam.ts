@@ -9,11 +9,7 @@ export function detectClosedPRSpam(
 ): IdentifyFlag[] {
 	const flags: IdentifyFlag[] = [];
 
-	// Closed PR spam detection (unwanted/rejected contributions across many repos)
-	// Pattern 1: Spray scatter - account closes PRs across many different repos
-	//           Indicates: low-quality or rejected code being submitted and abandoned
-	// Pattern 2: Concentrated closing - many closed PRs to varied repos in short time
-	//           Indicates: automated spam attack or rejection surge
+	// Detects two patterns: scatter (rejections across many repos) or burst (many rejections in short window)
 	const isEstablished = accountAge >= CONFIG.AGE_ESTABLISHED_ACCOUNT;
 	const minClosedPRs = isEstablished
 		? CONFIG.CLOSED_PR_SPAM_MIN_ESTABLISHED
@@ -83,9 +79,7 @@ export function detectClosedPRSpam(
 		points = CONFIG.POINTS_CLOSED_PR_SPAM_HIGH; // 25-99 PRs = high volume spam
 	}
 
-	// Pattern 1: Spray scatter - closed PRs across many repos IN A BURST/CLUSTER
-	// Only flag if there's a clear cluster of rejections, not just spread activity
-	// Calculate PR density to ensure this is an actual spam burst, not just normal scattered contributions
+	// Check spam burst: PR density distinguishes bursts from normal scattered activity
 	const prDensity =
 		fractionalDays > 0
 			? closedPREvents.length / fractionalDays
@@ -107,8 +101,7 @@ export function detectClosedPRSpam(
 		return flags;
 	}
 
-	// Pattern 2: Concentrated closing to few repos in short window
-	// (would be caught above if PRs are scattered, so this is secondary check)
+	// Secondary check: concentrated closing to few repos in short window
 	if (closedPRRepos.size >= 2) {
 		if (timeSpanMinutes <= CONFIG.CLOSED_PR_TIME_WINDOW_MINUTES) {
 			// For burst patterns with extreme volume, boost points even higher

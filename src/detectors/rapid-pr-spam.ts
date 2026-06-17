@@ -9,9 +9,7 @@ export function detectRapidPRSpam(
 ): IdentifyFlag[] {
 	const flags: IdentifyFlag[] = [];
 
-	// Rapid PR spam to repository (fork attack pattern)
-	// Detects: multiple PRs opened in rapid succession to same repo
-	// Catches spam that doesn't correlate with branch creation
+	// Detects rapid PRs to same repo (fork attack: multiple PRs in quick succession)
 	const isEstablished = accountAge >= CONFIG.AGE_ESTABLISHED_ACCOUNT;
 	const minRapidPRs = isEstablished
 		? CONFIG.RAPID_PR_SPAM_MIN_PRS_ESTABLISHED

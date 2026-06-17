@@ -14,9 +14,7 @@ export function detectInhumanActivityPattern(
 		return flags;
 	}
 
-	// 24/7 activity pattern detection - ONLY PER-DAY ANALYSIS
-	// Global hours across multiple days is meaningless - someone codes at different times on different days
-	// Only flag if a SINGLE DAY shows no realistic sleep window (< 3 hours gap)
+	// Check per-day for unrealistic sleep windows (<3 hours rest gap in a single day)
 	const eventsByDay = new Map<string, Set<number>>();
 	events.forEach((e) => {
 		const day = dayjs.utc(e.created_at).format("YYYY-MM-DD");

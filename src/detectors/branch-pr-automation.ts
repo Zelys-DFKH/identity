@@ -9,9 +9,7 @@ export function detectBranchPRAutomation(
 ): IdentifyFlag[] {
 	const flags: IdentifyFlag[] = [];
 
-	// Pattern: Temporal branch→PR correlation (automated CI/CD workflow detection)
-	// Detects: branch created, PR submitted within short window, repeatedly (repo-scoped)
-	// This is a strong automation indicator: real developers don't mechanically repeat this pattern
+	// Detects repeated branch→PR temporal correlations (automated CI/CD workflow: strong automation indicator)
 	const isEstablished = accountAge >= CONFIG.AGE_ESTABLISHED_ACCOUNT;
 	const branchPRMinPairs = isEstablished
 		? CONFIG.BRANCH_PR_PATTERN_MIN_PAIRS_ESTABLISHED
@@ -108,9 +106,7 @@ export function detectBranchPRAutomation(
 					});
 				}
 			} else {
-				// Fallback: Check for fork-based workflow (branch in fork → PR to upstream with same project name)
-				// Pattern: user creates branches in their fork (user/projectname), opens PRs to upstream (different-owner/projectname)
-				// This is a legitimate automation pattern (fork → upstream contribution)
+				// Fallback: Check fork-based workflow (branch in fork → PR to upstream same-named repo)
 				let forkWorkflowMatches = 0;
 				let forkMaxTimeDiff = 0;
 

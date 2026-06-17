@@ -21,11 +21,7 @@ export function isClosedPR(e: GitHubEvent | undefined | null): boolean {
 	return e?.type === "PullRequestEvent" && e?.payload?.action === "closed";
 }
 
-/**
- * Calculate Shannon's entropy of a probability distribution
- * Lower entropy = more concentrated/predictable (bot-like)
- * Higher entropy = more uniformly distributed / random
- */
+/** Shannon's entropy: lower=concentrated (bot), higher=distributed. */
 function calculateShannonsEntropy(counts: number[]): number {
 	if (counts.length === 0) return 0;
 
@@ -43,11 +39,7 @@ function calculateShannonsEntropy(counts: number[]): number {
 	return entropy;
 }
 
-/**
- * Calculate normalized Shannon's entropy (0 to 1)
- * Useful for comparing distributions with different state counts
- * Returns 0-1 where 0 = completely concentrated, 1 = perfectly uniform
- */
+/** Normalized Shannon's entropy (0-1): 0=concentrated, 1=uniform. */
 export function calculateNormalizedShannonsEntropy(counts: number[]): number {
 	if (counts.length <= 1) return 0;
 
