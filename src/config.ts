@@ -315,18 +315,32 @@ export const KNOWN_BOT_ACCOUNTS = new Set([
 	"restyled-io",
 ]);
 
-// Flag labels that trigger "likely_spam" over "automation". These strings MUST exactly match the label field produced by their respective detectors — if a detector label changes, update this Set in lockstep, otherwise likely_spam will silently stop firing.
+// Spam-signal label constants — import these in detectors instead of inlining the strings,
+// so a label rename here is caught by the compiler rather than silently breaking likely_spam.
+export const LABEL_STAR_FARM = "Star farm pattern";
+export const LABEL_STAR_BURST = "Star burst activity";
+export const LABEL_ISSUE_BURST = "Issue burst";
+export const LABEL_ISSUE_COMMENT_SPAM = "Issue comment spam";
+export const LABEL_PR_COMMENT_SPAM = "PR comment spam";
+export const LABEL_RAPID_PR_SPAM = "Rapid PR spam to repository";
+export const LABEL_DISTRIBUTED_PR_SPAM = "Distributed PR spam pattern";
+export const LABEL_PR_SPAM_DAILY = "Extreme PR spam (daily)";
+export const LABEL_PR_SPAM_WEEKLY = "Extreme PR spam (weekly)";
+export const LABEL_PR_SPAM_WEEKLY_HIGH = "Very high PR spam frequency";
+export const LABEL_CLOSED_PR_SPAM_BURST = "Closed PR spam burst";
+export const LABEL_CLOSED_PR_SPAM_SCATTER = "Closed PR spam scatter";
+
 export const SPAM_SIGNAL_LABELS = new Set([
-	"Star farm pattern",
-	"Star burst activity",
-	"Issue burst",
-	"Issue comment spam",
-	"PR comment spam",
-	"Rapid PR spam to repository",
-	"Distributed PR spam pattern",
-	"Extreme PR spam (daily)",
-	"Extreme PR spam (weekly)",
-	"Very high PR spam frequency",
-	"Closed PR spam burst",
-	"Closed PR spam scatter",
+	LABEL_STAR_FARM,
+	LABEL_STAR_BURST,
+	LABEL_ISSUE_BURST,
+	LABEL_ISSUE_COMMENT_SPAM,
+	LABEL_PR_COMMENT_SPAM,
+	LABEL_RAPID_PR_SPAM,
+	LABEL_DISTRIBUTED_PR_SPAM,
+	LABEL_PR_SPAM_DAILY,
+	LABEL_PR_SPAM_WEEKLY,
+	LABEL_PR_SPAM_WEEKLY_HIGH,
+	LABEL_CLOSED_PR_SPAM_BURST,
+	LABEL_CLOSED_PR_SPAM_SCATTER,
 ]);

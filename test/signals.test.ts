@@ -774,6 +774,56 @@ describe("identify - Issue Comment Spam Detection", () => {
 		);
 	});
 
+	it("should flag issue comment spray at the ISSUE_COMMENT_SPRAY_HIGH boundary (6 repos)", () => {
+		const events: GitHubEvent[] = [];
+		// 10 IssueCommentEvents within 2 minutes, spread across exactly 6 repos
+		for (let i = 0; i < 10; i++) {
+			events.push({
+				type: "IssueCommentEvent",
+				created_at: new Date(2026, 2, 10, 12, 0, i * 10).toISOString(),
+				repo: { name: `owner/repo${i % 6}` } as any,
+			} as any);
+		}
+
+		const result = identify({
+			createdAt: "2025-01-01T00:00:00Z",
+			reposCount: 20,
+			accountName: "user",
+			events,
+		});
+
+		expect(result.flags.some((f) => f.label === "High comment frequency across repos")).toBe(true);
+		// 6 repos is below ISSUE_COMMENT_SPRAY_EXTREME (15), so the extreme label must not fire
+		expect(result.flags.some((f) => f.label === "Issue comment spam")).toBe(false);
+	});
+
+	it("should not flag issue comment spray just below the ISSUE_COMMENT_SPRAY_HIGH boundary (5 repos)", () => {
+		const events: GitHubEvent[] = [];
+		// 10 IssueCommentEvents within 2 minutes, spread across only 5 repos
+		for (let i = 0; i < 10; i++) {
+			events.push({
+				type: "IssueCommentEvent",
+				created_at: new Date(2026, 2, 10, 12, 0, i * 10).toISOString(),
+				repo: { name: `owner/repo${i % 5}` } as any,
+			} as any);
+		}
+
+		const result = identify({
+			createdAt: "2025-01-01T00:00:00Z",
+			reposCount: 20,
+			accountName: "user",
+			events,
+		});
+
+		expect(
+			result.flags.some(
+				(f) =>
+					f.label === "High comment frequency across repos" ||
+					f.label === "Issue comment spam",
+			),
+		).toBe(false);
+	});
+
 	it("should flag high issue comment frequency (10-14 repos in short timeframe)", () => {
 		const events: GitHubEvent[] = [];
 		// Create 10 issue comment events within 2 minutes
