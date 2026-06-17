@@ -3,7 +3,7 @@ import minMax from "dayjs/plugin/minMax";
 import utc from "dayjs/plugin/utc";
 import { CONFIG } from "../config";
 import type { GitHubEvent, IdentifyFlag } from "../types";
-import { isOpenedPR } from "../utils";
+import { isOpenedPR, sortByDate } from "../utils";
 
 dayjs.extend(utc);
 dayjs.extend(minMax);
@@ -20,9 +20,9 @@ export function detectForkActivity(events: GitHubEvent[]): IdentifyFlag[] {
 	}
 
 	// Detect if forks are clustered in time (spike) vs spread over time
-	const forkTimestamps = forkEvents
-		.map((e) => dayjs(e.created_at))
-		.sort((a, b) => a.valueOf() - b.valueOf());
+	const forkTimestamps = sortByDate(forkEvents
+		.map((e) => ({ time: dayjs(e.created_at) })))
+		.map((item) => item.time);
 
 	// Helper to find max forks in any window of given hours
 	const findMaxForksInWindow = (hours: number): number => {
@@ -144,9 +144,9 @@ export function detectForkActivity(events: GitHubEvent[]): IdentifyFlag[] {
 	});
 
 	if (forkDays.size >= CONFIG.CONSECUTIVE_FORK_DAYS && !forkSpikeFlag) {
-		const sortedForkDays = Array.from(forkDays)
-			.map((d) => dayjs(d, "YYYY-MM-DD"))
-			.sort((a, b) => a.valueOf() - b.valueOf());
+		const sortedForkDays = sortByDate(Array.from(forkDays)
+			.map((d) => ({ time: dayjs(d, "YYYY-MM-DD") })))
+			.map((item) => item.time);
 
 		let maxConsecutiveForkDays = 1;
 		let currentStreak = 1;

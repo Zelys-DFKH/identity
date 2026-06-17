@@ -72,10 +72,32 @@ export function computeActivityRecencyMultiplier(
 			total += 1;
 			continue;
 		}
-		const ageDays = Math.max(0, (now - t) / (1000 * 60 * 60 * 24));
+		const ageDays = Math.max(0, msToDays(now - t));
 		total += Math.exp((-Math.LN2 * ageDays) / halfLifeDays);
 	}
 	return total / events.length;
+}
+
+/** Sort array of Dayjs dates in ascending order. */
+export function sortByDate<T extends { time: ReturnType<typeof dayjs> }>(
+	items: T[],
+): T[] {
+	return items.sort((a, b) => a.time.valueOf() - b.time.valueOf());
+}
+
+/** Sort array of Date objects in ascending order. */
+export function sortByDateValue(dates: Date[]): Date[] {
+	return dates.sort((a, b) => a.valueOf() - b.valueOf());
+}
+
+/** Convert milliseconds to days. */
+export function msToDays(ms: number): number {
+	return ms / (1000 * 60 * 60 * 24);
+}
+
+/** Calculate days between two timestamps in milliseconds. */
+export function daysBetween(msA: number, msB: number): number {
+	return msToDays(Math.abs(msA - msB));
 }
 
 /** Find the densest burst of events within a time window. Maps timestamps to extracted keys; returns max key count in densest window. */

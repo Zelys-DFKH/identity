@@ -1,7 +1,7 @@
 import dayjs from "dayjs";
 import { CONFIG, LABEL_RAPID_PR_SPAM } from "../config";
 import type { GitHubEvent, IdentifyFlag } from "../types";
-import { isOpenedPR } from "../utils";
+import { isOpenedPR, sortByDate } from "../utils";
 
 export function detectRapidPRSpam(
 	events: GitHubEvent[],
@@ -23,9 +23,8 @@ export function detectRapidPRSpam(
 		return flags;
 	}
 
-	const prTimes = prEvents
-		.map((e) => ({ event: e, time: dayjs(e.created_at) }))
-		.sort((a, b) => a.time.valueOf() - b.time.valueOf());
+	const prTimes = sortByDate(prEvents
+		.map((e) => ({ event: e, time: dayjs(e.created_at) })));
 
 	const prsByRepo = new Map<string, typeof prTimes>();
 	for (const prEntry of prTimes) {

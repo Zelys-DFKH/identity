@@ -2,7 +2,7 @@ import dayjs from "dayjs";
 import minMax from "dayjs/plugin/minMax";
 import { CONFIG, LABEL_DISTRIBUTED_PR_SPAM, LABEL_PR_SPAM_DAILY, LABEL_PR_SPAM_WEEKLY, LABEL_PR_SPAM_WEEKLY_HIGH } from "../config";
 import type { GitHubEvent, IdentifyFlag } from "../types";
-import { isOpenedPR } from "../utils";
+import { isOpenedPR, sortByDate } from "../utils";
 
 dayjs.extend(minMax);
 
@@ -84,9 +84,9 @@ export function detectExtremeAndDistributedPRSpam(
 			if (prTargetRepos.size >= CONFIG.REPOS_SPAM_SPREAD) {
 				// Guard against flagging long-term contributors:
 				// Calculate time density and rolling window
-				const prTimestamps = allPREvents
-					.map((e) => dayjs(e.created_at))
-					.sort((a, b) => a.valueOf() - b.valueOf());
+				const prTimestamps = sortByDate(allPREvents
+					.map((e) => ({ time: dayjs(e.created_at) })))
+					.map((item) => item.time);
 
 				const earliestPR = prTimestamps[0];
 				const latestPR = prTimestamps[prTimestamps.length - 1];

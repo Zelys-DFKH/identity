@@ -1,6 +1,6 @@
 import dayjs from "dayjs";
 import { CONFIG, LABEL_ISSUE_COMMENT_SPAM, LABEL_PR_COMMENT_SPAM } from "../config";
-import { findDensestBurst } from "../utils";
+import { findDensestBurst, sortByDate } from "../utils";
 import type { GitHubEvent, IdentifyFlag } from "../types";
 
 export function detectCommentSpam(events: GitHubEvent[]): IdentifyFlag[] {
@@ -26,9 +26,8 @@ export function detectCommentSpam(events: GitHubEvent[]): IdentifyFlag[] {
 		const maxReposWindowEndIdx = burst.endIdx;
 
 		if (maxDistinctReposInWindow >= CONFIG.ISSUE_COMMENT_SPRAY_EXTREME) {
-			const commentTimestamps = issueCommentEvents
-				.map((e) => ({ time: dayjs(e.created_at) }))
-				.sort((a, b) => a.time.valueOf() - b.time.valueOf());
+			const commentTimestamps = sortByDate(issueCommentEvents
+				.map((e) => ({ time: dayjs(e.created_at) })));
 			const windowStart = commentTimestamps[maxReposWindowStartIdx]?.time;
 			const windowEnd = commentTimestamps[maxReposWindowEndIdx]?.time;
 			const commentsInWindow = maxReposWindowEndIdx - maxReposWindowStartIdx + 1;
@@ -43,9 +42,8 @@ export function detectCommentSpam(events: GitHubEvent[]): IdentifyFlag[] {
 				detail: `${commentsInWindow} comments to ${maxDistinctReposInWindow} different repos in just ${timeSpanMinutes} minute${timeSpanMinutes === 1 ? "" : "s"}`,
 			});
 		} else if (maxDistinctReposInWindow >= CONFIG.ISSUE_COMMENT_SPRAY_HIGH) {
-			const commentTimestamps = issueCommentEvents
-				.map((e) => ({ time: dayjs(e.created_at) }))
-				.sort((a, b) => a.time.valueOf() - b.time.valueOf());
+			const commentTimestamps = sortByDate(issueCommentEvents
+				.map((e) => ({ time: dayjs(e.created_at) })));
 			const windowStart = commentTimestamps[maxReposWindowStartIdx]?.time;
 			const windowEnd = commentTimestamps[maxReposWindowEndIdx]?.time;
 			const commentsInWindow = maxReposWindowEndIdx - maxReposWindowStartIdx + 1;
@@ -85,9 +83,8 @@ export function detectCommentSpam(events: GitHubEvent[]): IdentifyFlag[] {
 		const maxPRsWindowEndIdx = burst.endIdx;
 
 		if (maxDistinctPRsInWindow >= CONFIG.PR_COMMENT_SPRAY_EXTREME) {
-			const prCommentTimestamps = prCommentEvents
-				.map((e) => ({ time: dayjs(e.created_at) }))
-				.sort((a, b) => a.time.valueOf() - b.time.valueOf());
+			const prCommentTimestamps = sortByDate(prCommentEvents
+				.map((e) => ({ time: dayjs(e.created_at) })));
 			const windowStart = prCommentTimestamps[maxPRsWindowStartIdx]?.time;
 			const windowEnd = prCommentTimestamps[maxPRsWindowEndIdx]?.time;
 			const commentsInWindow = maxPRsWindowEndIdx - maxPRsWindowStartIdx + 1;
@@ -102,9 +99,8 @@ export function detectCommentSpam(events: GitHubEvent[]): IdentifyFlag[] {
 				detail: `${commentsInWindow} comments on ${maxDistinctPRsInWindow} different PRs in just ${timeSpanMinutes} minute${timeSpanMinutes === 1 ? "" : "s"}`,
 			});
 		} else if (maxDistinctPRsInWindow >= CONFIG.PR_COMMENT_SPRAY_HIGH) {
-			const prCommentTimestamps = prCommentEvents
-				.map((e) => ({ time: dayjs(e.created_at) }))
-				.sort((a, b) => a.time.valueOf() - b.time.valueOf());
+			const prCommentTimestamps = sortByDate(prCommentEvents
+				.map((e) => ({ time: dayjs(e.created_at) })));
 			const windowStart = prCommentTimestamps[maxPRsWindowStartIdx]?.time;
 			const windowEnd = prCommentTimestamps[maxPRsWindowEndIdx]?.time;
 			const commentsInWindow = maxPRsWindowEndIdx - maxPRsWindowStartIdx + 1;

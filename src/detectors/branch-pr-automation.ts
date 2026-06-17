@@ -1,7 +1,7 @@
 import dayjs from "dayjs";
 import { CONFIG } from "../config";
 import type { GitHubEvent, IdentifyFlag } from "../types";
-import { isOpenedPR } from "../utils";
+import { isOpenedPR, sortByDate } from "../utils";
 
 export function detectBranchPRAutomation(
 	events: GitHubEvent[],
@@ -32,13 +32,11 @@ export function detectBranchPRAutomation(
 		const branchPRRatio = branchCreates.length / prEvents.length;
 
 		if (branchPRRatio >= CONFIG.BRANCH_PR_COUNT_RATIO_MIN) {
-			const branchTimes = branchCreates
-				.map((e) => ({ event: e, time: dayjs(e.created_at) }))
-				.sort((a, b) => a.time.valueOf() - b.time.valueOf());
+			const branchTimes = sortByDate(branchCreates
+				.map((e) => ({ event: e, time: dayjs(e.created_at) })));
 
-			const prTimes = prEvents
-				.map((e) => ({ event: e, time: dayjs(e.created_at) }))
-				.sort((a, b) => a.time.valueOf() - b.time.valueOf());
+			const prTimes = sortByDate(prEvents
+				.map((e) => ({ event: e, time: dayjs(e.created_at) })));
 
 			// Group PRs by repository for repo-scoped matching
 			const prTimesByRepo = new Map<string, typeof prTimes>();

@@ -2,7 +2,7 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import { CONFIG } from "../config";
 import type { GitHubEvent, IdentifyFlag, IdentifyProfile } from "../types";
-import { getRepoOwner } from "../utils";
+import { getRepoOwner, msToDays } from "../utils";
 
 dayjs.extend(utc);
 
@@ -115,7 +115,7 @@ export function detectDormancyGap(events: GitHubEvent[]): IdentifyFlag[] {
 
 	let maxGapDays = 0;
 	for (let i = 1; i < timestamps.length; i++) {
-		const gapDays = (timestamps[i] - timestamps[i - 1]) / (1000 * 60 * 60 * 24);
+		const gapDays = msToDays(timestamps[i] - timestamps[i - 1]);
 		if (gapDays > maxGapDays) maxGapDays = gapDays;
 	}
 
@@ -207,7 +207,7 @@ export function detectLongSpanEngagement(
 
 	let longSpanCount = 0;
 	for (const { first, last } of repoSpans.values()) {
-		const spanDays = (last - first) / (1000 * 60 * 60 * 24);
+		const spanDays = msToDays(last - first);
 		if (spanDays >= CONFIG.REPO_SPAN_MIN_DAYS) longSpanCount++;
 	}
 

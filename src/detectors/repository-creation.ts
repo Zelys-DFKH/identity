@@ -1,6 +1,7 @@
 import dayjs from "dayjs";
 import { CONFIG } from "../config";
 import type { GitHubEvent, IdentifyFlag } from "../types";
+import { sortByDate } from "../utils";
 
 export function detectRepositoryCreationBurst(
 	events: GitHubEvent[],
@@ -18,9 +19,9 @@ export function detectRepositoryCreationBurst(
 
 	// Rapid repo creation burst (real repository creation clustering)
 	if (createEvents.length >= CONFIG.CREATE_EVENTS_MIN) {
-		const createTimestamps = createEvents
-			.map((e) => dayjs(e.created_at))
-			.sort((a, b) => a.valueOf() - b.valueOf());
+		const createTimestamps = sortByDate(createEvents
+			.map((e) => ({ time: dayjs(e.created_at) })))
+			.map((item) => item.time);
 
 		// Check for repo creation clustering (multiple repos in short time window)
 		let maxCreatesInWindow = 0;
