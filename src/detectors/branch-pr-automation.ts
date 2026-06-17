@@ -1,6 +1,7 @@
 import dayjs from "dayjs";
 import { CONFIG } from "../config";
 import type { GitHubEvent, IdentifyFlag } from "../types";
+import { isOpenedPR } from "../utils";
 
 export function detectBranchPRAutomation(
 	events: GitHubEvent[],
@@ -22,9 +23,7 @@ export function detectBranchPRAutomation(
 	const branchCreates = events.filter(
 		(e) => e.type === "CreateEvent" && e.payload?.ref_type === "branch",
 	);
-	const prEvents = events.filter(
-		(e) => e.type === "PullRequestEvent" && e.payload?.action === "opened",
-	);
+	const prEvents = events.filter(isOpenedPR);
 
 	if (
 		branchCreates.length >= branchPRMinPairs &&

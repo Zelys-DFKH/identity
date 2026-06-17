@@ -1,6 +1,7 @@
 import dayjs from "dayjs";
 import { CONFIG, LABEL_CLOSED_PR_SPAM_BURST, LABEL_CLOSED_PR_SPAM_SCATTER } from "../config";
 import type { GitHubEvent, IdentifyFlag } from "../types";
+import { isClosedPR } from "../utils";
 
 export function detectClosedPRSpam(
 	events: GitHubEvent[],
@@ -18,9 +19,7 @@ export function detectClosedPRSpam(
 		? CONFIG.CLOSED_PR_SPAM_MIN_ESTABLISHED
 		: CONFIG.CLOSED_PR_SPAM_MIN;
 
-	const closedPREvents = events.filter(
-		(e) => e.type === "PullRequestEvent" && e.payload?.action === "closed",
-	);
+	const closedPREvents = events.filter(isClosedPR);
 
 	if (closedPREvents.length < minClosedPRs) {
 		return flags;

@@ -1,6 +1,7 @@
 import dayjs from "dayjs";
 import { CONFIG, LABEL_RAPID_PR_SPAM } from "../config";
 import type { GitHubEvent, IdentifyFlag } from "../types";
+import { isOpenedPR } from "../utils";
 
 export function detectRapidPRSpam(
 	events: GitHubEvent[],
@@ -16,9 +17,7 @@ export function detectRapidPRSpam(
 		? CONFIG.RAPID_PR_SPAM_MIN_PRS_ESTABLISHED
 		: CONFIG.RAPID_PR_SPAM_MIN_PRS;
 
-	const prEvents = events.filter(
-		(e) => e.type === "PullRequestEvent" && e.payload?.action === "opened",
-	);
+	const prEvents = events.filter(isOpenedPR);
 
 	if (prEvents.length < minRapidPRs) {
 		return flags;

@@ -2,7 +2,7 @@ import dayjs from "dayjs";
 import minMax from "dayjs/plugin/minMax";
 import { CONFIG } from "../config";
 import type { GitHubEvent, IdentifyFlag } from "../types";
-import { calculateNormalizedShannonsEntropy } from "../utils";
+import { calculateNormalizedShannonsEntropy, getRepoOwner, getRepoOwnerFromName, isOpenedPR } from "../utils";
 
 dayjs.extend(minMax);
 
@@ -89,9 +89,7 @@ export function detectYoungAccountActivity(
 	}
 
 	// PRs (flag more aggressively)
-	const prEvents = events.filter(
-		(e) => e.type === "PullRequestEvent" && e.payload?.action === "opened",
-	);
+	const prEvents = events.filter(isOpenedPR);
 
 	if (prEvents.length >= CONFIG.MIN_EVENTS_FOR_ANALYSIS) {
 		const timestamps = prEvents.map((e) => dayjs(e.created_at));
@@ -210,7 +208,7 @@ export function detectYoungAccountActivity(
 			.map((e) => e.repo?.name)
 			.filter((name) => {
 				if (!name) return false;
-				const repoOwner = name.split("/")[0]?.toLowerCase();
+				const repoOwner = getRepoOwnerFromName(name);
 				return repoOwner !== userLogin;
 			}),
 	);
@@ -232,7 +230,7 @@ export function detectYoungAccountActivity(
 	// External PRs
 	// check frequency, not just total
 	const externalPRs = prEvents.filter((e) => {
-		const repoOwner = e.repo?.name?.split("/")[0]?.toLowerCase();
+		const repoOwner = getRepoOwner(e);
 		return repoOwner && repoOwner !== userLogin;
 	});
 
@@ -284,7 +282,7 @@ export function detectYoungAccountActivity(
 
 	// Mostly external activity (not 100%)
 	const foreignEvents = events.filter((e) => {
-		const repoOwner = e.repo?.name?.split("/")[0]?.toLowerCase();
+		const repoOwner = getRepoOwner(e);
 		return repoOwner && repoOwner !== userLogin;
 	});
 	const foreignRatio = foreignEvents.length / events.length;

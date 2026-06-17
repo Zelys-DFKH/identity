@@ -2,7 +2,7 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import { CONFIG, LABEL_ISSUE_BURST, LABEL_STAR_BURST, LABEL_STAR_FARM } from "../config";
 import type { GitHubEvent, IdentifyFlag, IdentifyProfile } from "../types";
-import { calculateNormalizedShannonsEntropy } from "../utils";
+import { calculateNormalizedShannonsEntropy, getRepoOwner } from "../utils";
 
 dayjs.extend(utc);
 
@@ -136,7 +136,7 @@ export function detectIssueBurst(
 	const issueOpenEvents = events.filter((e) => {
 		if (e.type !== "IssuesEvent") return false;
 		if (e.payload?.action !== "opened") return false;
-		const repoOwner = e.repo?.name?.split("/")[0]?.toLowerCase();
+		const repoOwner = getRepoOwner(e);
 		return repoOwner && repoOwner !== accountName.toLowerCase();
 	});
 
@@ -147,7 +147,7 @@ export function detectIssueBurst(
 	// while still spamming issues across many external repos.
 	const hasExternalPush = events.some((e) => {
 		if (e.type !== "PushEvent") return false;
-		const repoOwner = e.repo?.name?.split("/")[0]?.toLowerCase();
+		const repoOwner = getRepoOwner(e);
 		return repoOwner && repoOwner !== accountName.toLowerCase();
 	});
 	if (hasExternalPush) return flags;
@@ -205,7 +205,7 @@ export function detectConsumerNoReciprocity(
 	]);
 	const hasExternalContribution = events.some((e) => {
 		if (!CONTRIBUTION_TYPES.has(e.type ?? "")) return false;
-		const repoOwner = e.repo?.name?.split("/")[0]?.toLowerCase();
+		const repoOwner = getRepoOwner(e);
 		return repoOwner && repoOwner !== accountName.toLowerCase();
 	});
 

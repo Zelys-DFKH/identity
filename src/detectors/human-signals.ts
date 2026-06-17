@@ -2,6 +2,7 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import { CONFIG } from "../config";
 import type { GitHubEvent, IdentifyFlag, IdentifyProfile } from "../types";
+import { getRepoOwner } from "../utils";
 
 dayjs.extend(utc);
 
@@ -19,7 +20,7 @@ export function detectMergedContributions(
 			action === "merged" ||
 			(action === "closed" && e.payload?.pull_request?.merged === true);
 		if (!isMerged) continue;
-		const repoOwner = e.repo?.name?.split("/")[0]?.toLowerCase();
+		const repoOwner = getRepoOwner(e);
 		if (repoOwner && repoOwner !== accountName.toLowerCase() && e.repo?.name) {
 			mergedPRRepos.add(e.repo.name);
 		}
@@ -50,7 +51,7 @@ export function detectReviewActivity(
 
 	const reviewCount = events.filter((e) => {
 		if (e.type !== "PullRequestReviewEvent") return false;
-		const repoOwner = e.repo?.name?.split("/")[0]?.toLowerCase();
+		const repoOwner = getRepoOwner(e);
 		return repoOwner && repoOwner !== accountName.toLowerCase();
 	}).length;
 
@@ -79,7 +80,7 @@ export function detectReviewCommentActivity(
 
 	const commentCount = events.filter((e) => {
 		if (e.type !== "PullRequestReviewCommentEvent") return false;
-		const repoOwner = e.repo?.name?.split("/")[0]?.toLowerCase();
+		const repoOwner = getRepoOwner(e);
 		return repoOwner && repoOwner !== accountName.toLowerCase();
 	}).length;
 
@@ -159,7 +160,7 @@ export function detectPRIterationCycles(
 	for (const e of events) {
 		if (e.type !== "PullRequestEvent") continue;
 		if (e.payload?.action !== "synchronize") continue;
-		const repoOwner = e.repo?.name?.split("/")[0]?.toLowerCase();
+		const repoOwner = getRepoOwner(e);
 		if (repoOwner && repoOwner !== accountName.toLowerCase() && e.repo?.name) {
 			syncRepos.add(e.repo.name);
 		}
@@ -191,7 +192,7 @@ export function detectLongSpanEngagement(
 
 	for (const e of events) {
 		if (!e.repo?.name || !e.created_at) continue;
-		const repoOwner = e.repo.name.split("/")[0]?.toLowerCase();
+		const repoOwner = getRepoOwner(e);
 		if (!repoOwner || repoOwner === accountName.toLowerCase()) continue;
 
 		const ts = dayjs.utc(e.created_at).valueOf();

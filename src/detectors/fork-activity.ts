@@ -3,6 +3,7 @@ import minMax from "dayjs/plugin/minMax";
 import utc from "dayjs/plugin/utc";
 import { CONFIG } from "../config";
 import type { GitHubEvent, IdentifyFlag } from "../types";
+import { isOpenedPR } from "../utils";
 
 dayjs.extend(utc);
 dayjs.extend(minMax);
@@ -234,9 +235,7 @@ export function detectForkCombinedActivity(
 	);
 
 	// Find PRs targeting forked repos
-	const allPREvents = events.filter(
-		(e) => e.type === "PullRequestEvent" && e.payload?.action === "opened",
-	);
+	const allPREvents = events.filter(isOpenedPR);
 	const prsInForkedRepos = allPREvents.filter((e) =>
 		forkedRepoNames.has(e.repo?.name || ""),
 	);

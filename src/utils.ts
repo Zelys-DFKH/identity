@@ -1,3 +1,25 @@
+import type { GitHubEvent } from "./types";
+
+/** Extract repo owner from event, handling optional chaining and null values. */
+export function getRepoOwner(e: GitHubEvent | undefined | null): string | undefined {
+	return e?.repo?.name?.split("/")[0]?.toLowerCase();
+}
+
+/** Extract repo owner from a repo name string (e.g., "owner/repo" → "owner"). */
+export function getRepoOwnerFromName(repoName: string | undefined | null): string | undefined {
+	return repoName?.split("/")[0]?.toLowerCase();
+}
+
+/** Check if event is a PR opened action. */
+export function isOpenedPR(e: GitHubEvent | undefined | null): boolean {
+	return e?.type === "PullRequestEvent" && e?.payload?.action === "opened";
+}
+
+/** Check if event is a PR closed action. */
+export function isClosedPR(e: GitHubEvent | undefined | null): boolean {
+	return e?.type === "PullRequestEvent" && e?.payload?.action === "closed";
+}
+
 /**
  * Calculate Shannon's entropy of a probability distribution
  * Lower entropy = more concentrated/predictable (bot-like)
