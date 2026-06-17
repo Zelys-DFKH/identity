@@ -1,5 +1,7 @@
 # identity
 
+> **Fork notice:** This fork adds detectors for human behavioral signals — merged PR activity, review participation, dormancy gaps, engagement longevity — and profile-level signals (pre-AI development history, follower count, identity completeness) to reduce false positives on genuine contributors. These changes were offered upstream and declined. The upstream package remains `@unveil/identity`; this fork is not published to npm.
+
 Identify automation patterns in GitHub accounts through behavioral analysis
 
 This is the core logic behind [AgentScan](https://agentscan.netlify.app), a tool for analyzing GitHub account behavior to detect potential AI agents and automated activity.
