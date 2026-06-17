@@ -47,7 +47,7 @@ import type {
 	IdentifyResult,
 	IdentityClassification,
 } from "./types";
-import { computeActivityRecencyMultiplier } from "./utils";
+import { computeActivityRecencyMultiplier, getRepoOwner } from "./utils";
 
 dayjs.extend(minMax);
 dayjs.extend(utc);
@@ -56,16 +56,12 @@ function calculateConfidence(
 	flags: IdentifyFlag[],
 	classification: IdentityClassification,
 ): number {
-	let corroborating: number;
-	if (classification === "organic") {
-		corroborating = flags.filter((f) => f.points < 0).length;
-	} else if (classification === "mixed") {
-		const botFlags = flags.filter((f) => f.points > 0).length;
-		const humanFlags = flags.filter((f) => f.points < 0).length;
-		corroborating = Math.min(botFlags, humanFlags);
-	} else {
-		corroborating = flags.filter((f) => f.points > 0).length;
-	}
+	const botCount = flags.filter((f) => f.points > 0).length;
+	const humanCount = flags.filter((f) => f.points < 0).length;
+	const corroborating =
+		classification === "organic" ? humanCount
+		: classification === "mixed" ? Math.min(botCount, humanCount)
+		: botCount;
 	if (corroborating === 0) return 20;
 	return Math.min(95, 40 + (corroborating - 1) * 23);
 }
@@ -105,8 +101,8 @@ export function identify({
 	}
 
 	const foreignEvents = filteredEvents.filter((e) => {
-		const repoOwner = e.repo?.name?.split("/")[0]?.toLowerCase();
-		return repoOwner && repoOwner !== accountName.toLowerCase();
+		const owner = getRepoOwner(e);
+		return !!owner && owner !== nameLower;
 	});
 
 	const isNewOrYoungAccount = accountAge < CONFIG.AGE_YOUNG_ACCOUNT;
