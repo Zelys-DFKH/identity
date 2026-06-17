@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { identify } from "../src/identify";
 import type { GitHubEvent } from "../src/types";
+import { makeEvent } from "./utils/get-fixtures";
 
 const date = new Date(2026, 2, 10, 12);
 
@@ -2102,19 +2103,14 @@ describe("identify - Temporal Event Degradation", () => {
 
 	it("does not decay mitigating signals (negative-point flags are unaffected)", () => {
 		const oldTs = "2025-09-11T00:00:00Z";
-		const makeEvent = (ts: string): GitHubEvent =>
-			({
-				type: "WatchEvent",
-				repo: { name: "other/popular-repo" },
-				created_at: ts,
-			}) as GitHubEvent;
+		const makeWatchEvent = (ts: string): GitHubEvent => makeEvent("WatchEvent", "other/popular-repo", ts);
 
 		// 5+ year old account earns Long-standing account (-10) regardless of event age
 		const result = identify({
 			createdAt: "2019-03-10T00:00:00Z",
 			reposCount: 2,
 			accountName: "user",
-			events: Array(20).fill(makeEvent(oldTs)),
+			events: Array(20).fill(makeWatchEvent(oldTs)),
 		});
 
 		expect(result.flags.some((f) => f.label === "Long-standing account")).toBe(true);
@@ -2124,19 +2120,14 @@ describe("identify - Temporal Event Degradation", () => {
 
 	it("does not decay non-event-based positive flags (Recently created is age-derived)", () => {
 		const oldTs = "2025-09-11T00:00:00Z"; // ~180 days old — deep decay
-		const makeEvent = (ts: string): GitHubEvent =>
-			({
-				type: "WatchEvent",
-				repo: { name: "other/popular-repo" },
-				created_at: ts,
-			}) as GitHubEvent;
+		const makeWatchEvent = (ts: string): GitHubEvent => makeEvent("WatchEvent", "other/popular-repo", ts);
 
 		// Account is 5 days old → "Recently created" (+20); events are 180 days old → heavy decay
 		const result = identify({
 			createdAt: "2026-03-05T00:00:00Z",
 			reposCount: 1,
 			accountName: "brandnewuser",
-			events: Array(5).fill(makeEvent(oldTs)),
+			events: Array(5).fill(makeWatchEvent(oldTs)),
 		});
 
 		const recentlyCreatedFlag = result.flags.find((f) => f.label === "Recently created");
@@ -2149,12 +2140,7 @@ describe("identify - Temporal Event Degradation", () => {
 		const oldTs = "2025-09-11T00:00:00Z"; // ~180 days before fake date
 		const recentTs = "2026-03-09T00:00:00Z"; // 1 day before fake date
 
-		const makeEvent = (ts: string): GitHubEvent =>
-			({
-				type: "WatchEvent",
-				repo: { name: "other/popular-repo" },
-				created_at: ts,
-			}) as GitHubEvent;
+		const makeWatchEvent = (ts: string): GitHubEvent => makeEvent("WatchEvent", "other/popular-repo", ts);
 
 		const base = {
 			createdAt: "2019-03-10T00:00:00Z",
@@ -2162,8 +2148,8 @@ describe("identify - Temporal Event Degradation", () => {
 			accountName: "user",
 		};
 
-		const resultOld = identify({ ...base, events: Array(20).fill(makeEvent(oldTs)) });
-		const resultRecent = identify({ ...base, events: Array(20).fill(makeEvent(recentTs)) });
+		const resultOld = identify({ ...base, events: Array(20).fill(makeWatchEvent(oldTs)) });
+		const resultRecent = identify({ ...base, events: Array(20).fill(makeWatchEvent(recentTs)) });
 
 		// Old activity decays → higher humanScore (appears less bot-like)
 		expect(resultOld.score).toBeGreaterThan(resultRecent.score);

@@ -7,20 +7,7 @@ import {
 	detectThinProfileBot,
 } from "../src/detectors/automation-signals";
 import type { GitHubEvent, IdentifyProfile } from "../src/types";
-
-function makeEvent(
-	type: string,
-	repoName: string,
-	createdAt: string,
-	payload?: Record<string, unknown>,
-): GitHubEvent {
-	return {
-		type,
-		repo: { name: repoName } as GitHubEvent["repo"],
-		created_at: createdAt,
-		payload,
-	} as GitHubEvent;
-}
+import { makeEvent } from "./utils/get-fixtures";
 
 const ACCOUNT = "testuser";
 const OWN_REPO = `${ACCOUNT}/my-repo`;

@@ -13,33 +13,7 @@ import {
 	detectReviewCommentActivity,
 } from "../src/detectors/human-signals";
 import type { GitHubEvent, IdentifyProfile } from "../src/types";
-
-function makeEvent(
-	type: string,
-	repoName: string,
-	createdAt: string,
-	payload?: Record<string, unknown>,
-): GitHubEvent {
-	return {
-		type,
-		repo: { name: repoName } as GitHubEvent["repo"],
-		created_at: createdAt,
-		payload,
-	} as GitHubEvent;
-}
-
-function makeMergedPREvent(repoName: string, createdAt: string): GitHubEvent {
-	return makeEvent("PullRequestEvent", repoName, createdAt, {
-		action: "closed",
-		pull_request: { merged: true },
-	});
-}
-
-function makeSyncPREvent(repoName: string, createdAt: string): GitHubEvent {
-	return makeEvent("PullRequestEvent", repoName, createdAt, {
-		action: "synchronize",
-	});
-}
+import { makeEvent, makeMergedPREvent, makeSyncPREvent } from "./utils/get-fixtures";
 
 const ACCOUNT = "testuser";
 const OWN_REPO = `${ACCOUNT}/my-repo`;
