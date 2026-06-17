@@ -23,6 +23,19 @@ import {
 	detectForkActivity,
 	detectForkCombinedActivity,
 } from "./detectors/fork-activity";
+import {
+	detectDayOfWeekVariance,
+	detectDormancyGap,
+	detectFollowerCount,
+	detectGistActivity,
+	detectIdentityCompleteness,
+	detectLongSpanEngagement,
+	detectMergedContributions,
+	detectPRIterationCycles,
+	detectPreAiHistory,
+	detectReviewActivity,
+	detectReviewCommentActivity,
+} from "./detectors/human-signals";
 import { detectExtremeAndDistributedPRSpam } from "./detectors/pr-spam";
 import { detectRapidPRSpam } from "./detectors/rapid-pr-spam";
 import { detectRepositoryCreationBurst } from "./detectors/repository-creation";
@@ -64,6 +77,8 @@ export function identify({
 	events,
 	excludeRepos = [],
 	commits = [],
+	repos = [],
+	profile,
 }: IdentifyOptions): IdentifyResult {
 	const flags: IdentifyFlag[] = [];
 
@@ -121,12 +136,26 @@ export function identify({
 	flags.push(...detectExtremeAndDistributedPRSpam(filteredEvents));
 	flags.push(...detectStarConcentration(filteredEvents));
 	flags.push(...detectEventMonoculture(filteredEvents));
-	flags.push(...detectThinProfileBot(undefined, reposCount));
+	flags.push(...detectThinProfileBot(profile, reposCount));
 	flags.push(...detectIssueBurst(filteredEvents, accountName));
 	flags.push(...detectConsumerNoReciprocity(filteredEvents, accountName));
 
 	// Mitigating signals
 	flags.push(...detectAccountSeniority(accountAge));
+	flags.push(...detectMergedContributions(filteredEvents, accountName));
+	const filteredRepos = repos.filter(
+		(r) => !r.name || !excludeReposLower.includes(r.name.toLowerCase()),
+	);
+	flags.push(...detectPreAiHistory(filteredRepos));
+	flags.push(...detectReviewActivity(filteredEvents, accountName));
+	flags.push(...detectReviewCommentActivity(filteredEvents, accountName));
+	flags.push(...detectFollowerCount(profile));
+	flags.push(...detectIdentityCompleteness(profile));
+	flags.push(...detectDormancyGap(filteredEvents));
+	flags.push(...detectGistActivity(filteredEvents));
+	flags.push(...detectPRIterationCycles(filteredEvents, accountName));
+	flags.push(...detectLongSpanEngagement(filteredEvents, accountName));
+	flags.push(...detectDayOfWeekVariance(filteredEvents));
 
 	const filteredCommits = commits.filter(
 		(commit) =>

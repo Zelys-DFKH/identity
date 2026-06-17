@@ -2240,12 +2240,22 @@ describe("identify - Confidence Edge Cases", () => {
 		// Recently created (+20, eventBased:false) + Event monoculture (+20) = 40 → humanScore=60 → "mixed"
 		// 2 bot flags, 0 human flags → corroborating = min(2, 0) = 0 → confidence = 20
 		// reposCount=5 (≥ PERSONAL_REPOS_LOW) prevents "Mostly external activity" from firing
-		const ts = "2026-03-08T00:00:00Z";
-		const events = Array.from({ length: 30 }, () => ({
-			type: "IssueCommentEvent",
-			repo: { name: "other/repo" },
-			created_at: ts,
-		} as GitHubEvent));
+		// Events spread across all 7 days of week (CV ≈ 0.10) to stay below DOW_VARIANCE_CV_MIN (0.3)
+		const mk = (d: string, n: number) =>
+			Array.from({ length: n }, () => ({
+				type: "IssueCommentEvent",
+				repo: { name: "other/repo" },
+				created_at: d,
+			} as GitHubEvent));
+		const events = [
+			...mk("2026-03-04T10:00:00Z", 4), // Wed
+			...mk("2026-03-05T10:00:00Z", 4), // Thu
+			...mk("2026-03-06T10:00:00Z", 4), // Fri
+			...mk("2026-03-07T10:00:00Z", 5), // Sat
+			...mk("2026-03-08T10:00:00Z", 4), // Sun
+			...mk("2026-03-09T10:00:00Z", 4), // Mon
+			...mk("2026-03-10T10:00:00Z", 5), // Tue (fake now)
+		];
 		const result = identify({
 			createdAt: "2026-02-15T00:00:00Z",
 			reposCount: 5,
@@ -2376,5 +2386,39 @@ describe("identify - SPAM_SIGNAL_LABELS coverage", () => {
 
 		expect(result.flags.some((f) => f.label === "Closed PR spam scatter")).toBe(true);
 		expect(result.classification).toBe("likely_spam");
+	});
+});
+
+describe("identify - Pre-AI History Repository Exclusion", () => {
+	it("should exclude named repos from pre-AI history scoring", () => {
+		const makePreAiRepo = (name: string) => ({
+			created_at: "2021-01-01T00:00:00Z",
+			name,
+		});
+		const preAiRepos = [
+			makePreAiRepo("excluded-owner/old-repo-a"),
+			makePreAiRepo("excluded-owner/old-repo-b"),
+			makePreAiRepo("excluded-owner/old-repo-c"),
+		];
+
+		const base = {
+			createdAt: "2024-01-01T00:00:00Z",
+			reposCount: 5,
+			accountName: "user",
+			events: [],
+			commits: [],
+		};
+
+		const withRepos = identify({ ...base, repos: preAiRepos });
+		const withReposExcluded = identify({
+			...base,
+			repos: preAiRepos,
+			excludeRepos: preAiRepos.map((r) => r.name),
+		});
+
+		// Without exclusion, the old repos contribute a mitigating pre-AI history flag
+		expect(withRepos.flags.some((f) => f.label === "Pre-AI development history")).toBe(true);
+		// With exclusion, those repos are filtered out and the flag must not appear
+		expect(withReposExcluded.flags.some((f) => f.label === "Pre-AI development history")).toBe(false);
 	});
 });
