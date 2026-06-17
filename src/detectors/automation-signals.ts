@@ -2,7 +2,7 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import { CONFIG, LABEL_ISSUE_BURST, LABEL_STAR_BURST, LABEL_STAR_FARM } from "../config";
 import type { GitHubEvent, IdentifyFlag, IdentifyProfile } from "../types";
-import { calculateNormalizedShannonsEntropy, findDensestBurst, getRepoOwner } from "../utils";
+import { calculateNormalizedShannonsEntropy, findDensestBurst, isExternalEvent } from "../utils";
 
 dayjs.extend(utc);
 
@@ -128,23 +128,16 @@ export function detectIssueBurst(
 ): IdentifyFlag[] {
 	const flags: IdentifyFlag[] = [];
 
-	const issueOpenEvents = events.filter((e) => {
-		if (e.type !== "IssuesEvent") return false;
-		if (e.payload?.action !== "opened") return false;
-		const repoOwner = getRepoOwner(e);
-		return repoOwner && repoOwner !== accountName.toLowerCase();
-	});
+	const issueOpenEvents = events.filter((e) =>
+		e.type === "IssuesEvent" && e.payload?.action === "opened" && isExternalEvent(e, accountName),
+	);
 
 	if (issueOpenEvents.length < CONFIG.ISSUE_BURST_COUNT_MIN) return flags;
 
 	// Drive-by pattern: issues with no external code contribution.
 	// Own-repo pushes don't count — someone can push to their own repos
 	// while still spamming issues across many external repos.
-	const hasExternalPush = events.some((e) => {
-		if (e.type !== "PushEvent") return false;
-		const repoOwner = getRepoOwner(e);
-		return repoOwner && repoOwner !== accountName.toLowerCase();
-	});
+	const hasExternalPush = events.some((e) => e.type === "PushEvent" && isExternalEvent(e, accountName));
 	if (hasExternalPush) return flags;
 
 	const burst = findDensestBurst(
@@ -183,11 +176,9 @@ export function detectConsumerNoReciprocity(
 		"PullRequestReviewEvent",
 		"PullRequestReviewCommentEvent",
 	]);
-	const hasExternalContribution = events.some((e) => {
-		if (!CONTRIBUTION_TYPES.has(e.type ?? "")) return false;
-		const repoOwner = getRepoOwner(e);
-		return repoOwner && repoOwner !== accountName.toLowerCase();
-	});
+	const hasExternalContribution = events.some((e) =>
+		CONTRIBUTION_TYPES.has(e.type ?? "") && isExternalEvent(e, accountName),
+	);
 
 	if (!hasExternalContribution) {
 		flags.push({

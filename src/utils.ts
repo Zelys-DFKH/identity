@@ -21,6 +21,11 @@ export function isClosedPR(e: GitHubEvent | undefined | null): boolean {
 	return e?.type === "PullRequestEvent" && e?.payload?.action === "closed";
 }
 
+export function isExternalEvent(e: GitHubEvent | undefined | null, accountName: string): boolean {
+	const owner = getRepoOwner(e);
+	return !!owner && owner !== accountName.toLowerCase();
+}
+
 /** Shannon's entropy: lower=concentrated (bot), higher=distributed. */
 function calculateShannonsEntropy(counts: number[]): number {
 	if (counts.length === 0) return 0;
