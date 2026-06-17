@@ -8,6 +8,13 @@ import {
 	detectAccountSeniority,
 } from "./detectors/account-age";
 import { detectInhumanActivityPattern } from "./detectors/activity-pattern";
+import {
+	detectConsumerNoReciprocity,
+	detectEventMonoculture,
+	detectIssueBurst,
+	detectStarConcentration,
+	detectThinProfileBot,
+} from "./detectors/automation-signals";
 import { detectBranchPRAutomation } from "./detectors/branch-pr-automation";
 import { detectClosedPRSpam } from "./detectors/closed-pr-spam";
 import { detectCommentSpam } from "./detectors/comment-spam";
@@ -112,6 +119,11 @@ export function identify({
 		),
 	);
 	flags.push(...detectExtremeAndDistributedPRSpam(filteredEvents));
+	flags.push(...detectStarConcentration(filteredEvents));
+	flags.push(...detectEventMonoculture(filteredEvents));
+	flags.push(...detectThinProfileBot(undefined, reposCount));
+	flags.push(...detectIssueBurst(filteredEvents, accountName));
+	flags.push(...detectConsumerNoReciprocity(filteredEvents, accountName));
 
 	// Mitigating signals
 	flags.push(...detectAccountSeniority(accountAge));
