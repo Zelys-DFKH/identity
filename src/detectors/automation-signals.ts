@@ -2,7 +2,7 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import { CONFIG, LABEL_ISSUE_BURST, LABEL_STAR_BURST, LABEL_STAR_FARM } from "../config";
 import type { GitHubEvent, IdentifyFlag, IdentifyProfile } from "../types";
-import { calculateNormalizedShannonsEntropy, getRepoOwner } from "../utils";
+import { calculateNormalizedShannonsEntropy, findDensestBurst, getRepoOwner } from "../utils";
 
 dayjs.extend(utc);
 
@@ -152,33 +152,18 @@ export function detectIssueBurst(
 	});
 	if (hasExternalPush) return flags;
 
-	const windowMs = CONFIG.ISSUE_BURST_WINDOW_HOURS * 60 * 60 * 1000;
-	const stamped = issueOpenEvents
-		.map((e) => ({
-			ts: dayjs.utc(e.created_at ?? "").valueOf(),
-			repo: e.repo?.name ?? "",
-		}))
-		.filter(
-			(item): item is { ts: number; repo: string } => !Number.isNaN(item.ts),
-		)
-		.sort((a, b) => a.ts - b.ts);
+	const burst = findDensestBurst(
+		issueOpenEvents,
+		(e) => e.repo?.name,
+		CONFIG.ISSUE_BURST_WINDOW_HOURS * 60,
+	);
 
-	let left = 0;
-	let maxRepos = 0;
-	for (let right = 0; right < stamped.length; right++) {
-		while (stamped[right].ts - stamped[left].ts > windowMs) left++;
-		const reposInWindow = new Set(
-			stamped.slice(left, right + 1).map((t) => t.repo),
-		);
-		if (reposInWindow.size > maxRepos) maxRepos = reposInWindow.size;
-	}
-
-	if (maxRepos >= CONFIG.ISSUE_BURST_REPOS_MIN) {
+	if (burst.maxKeyCount >= CONFIG.ISSUE_BURST_REPOS_MIN) {
 		flags.push({
 			label: LABEL_ISSUE_BURST,
 			points: CONFIG.POINTS_ISSUE_BURST,
 			amplifiable: true,
-			detail: `Issues opened across ${maxRepos} repositories within ${CONFIG.ISSUE_BURST_WINDOW_HOURS}h with no code contributions`,
+			detail: `Issues opened across ${burst.maxKeyCount} repositories within ${CONFIG.ISSUE_BURST_WINDOW_HOURS}h with no code contributions`,
 		});
 	}
 

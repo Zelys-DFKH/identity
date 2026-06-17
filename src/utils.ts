@@ -1,3 +1,4 @@
+import dayjs from "dayjs";
 import type { GitHubEvent } from "./types";
 
 /** Extract repo owner from event, handling optional chaining and null values. */
@@ -75,4 +76,51 @@ export function computeActivityRecencyMultiplier(
 		total += Math.exp((-Math.LN2 * ageDays) / halfLifeDays);
 	}
 	return total / events.length;
+}
+
+/** Find the densest burst of events within a time window. Maps timestamps to extracted keys; returns max key count in densest window. */
+export function findDensestBurst<T extends { created_at?: string | null }>(
+	events: T[],
+	extractKey: (item: T) => string | undefined,
+	windowMinutes: number,
+): { maxKeyCount: number; startIdx: number; endIdx: number } {
+	if (events.length === 0) {
+		return { maxKeyCount: 0, startIdx: 0, endIdx: 0 };
+	}
+
+	const timestamped = events
+		.map((e) => ({ event: e, time: dayjs(e.created_at) }))
+		.sort((a, b) => a.time.valueOf() - b.time.valueOf());
+
+	let maxKeyCount = 0;
+	let maxStartIdx = 0;
+	let maxEndIdx = 0;
+	let windowStartIdx = 0;
+
+	for (let windowEndIdx = 0; windowEndIdx < timestamped.length; windowEndIdx++) {
+		const windowEnd = timestamped[windowEndIdx]?.time;
+
+		while (
+			timestamped[windowStartIdx] &&
+			windowEnd &&
+			windowEnd.diff(timestamped[windowStartIdx].time, "minute", true) > windowMinutes
+		) {
+			windowStartIdx++;
+		}
+
+		const keysInWindow = new Set(
+			timestamped
+				.slice(windowStartIdx, windowEndIdx + 1)
+				.map((item) => extractKey(item.event))
+				.filter((key) => key !== undefined),
+		);
+
+		if (keysInWindow.size > maxKeyCount) {
+			maxKeyCount = keysInWindow.size;
+			maxStartIdx = windowStartIdx;
+			maxEndIdx = windowEndIdx;
+		}
+	}
+
+	return { maxKeyCount, startIdx: maxStartIdx, endIdx: maxEndIdx };
 }

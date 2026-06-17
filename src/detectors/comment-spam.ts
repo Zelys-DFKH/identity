@@ -1,5 +1,6 @@
 import dayjs from "dayjs";
 import { CONFIG, LABEL_ISSUE_COMMENT_SPAM, LABEL_PR_COMMENT_SPAM } from "../config";
+import { findDensestBurst } from "../utils";
 import type { GitHubEvent, IdentifyFlag } from "../types";
 
 export function detectCommentSpam(events: GitHubEvent[]): IdentifyFlag[] {
@@ -15,56 +16,22 @@ export function detectCommentSpam(events: GitHubEvent[]): IdentifyFlag[] {
 	);
 
 	if (issueCommentEvents.length >= CONFIG.ISSUE_COMMENT_MIN_FOR_SPRAY) {
-		// Sort by timestamp
-		const commentTimestamps = issueCommentEvents
-			.map((e) => ({ event: e, time: dayjs(e.created_at) }))
-			.sort((a, b) => a.time.valueOf() - b.time.valueOf());
+		const burst = findDensestBurst(
+			issueCommentEvents,
+			(e) => e.repo?.name,
+			CONFIG.ISSUE_COMMENT_SPAM_WINDOW_MINUTES,
+		);
+		const maxDistinctReposInWindow = burst.maxKeyCount;
+		const maxReposWindowStartIdx = burst.startIdx;
+		const maxReposWindowEndIdx = burst.endIdx;
 
-		// Find the densest window of activity
-		let maxDistinctReposInWindow = 0;
-		let maxReposWindowStartIdx = 0;
-		let maxReposWindowEndIdx = 0;
-		let windowStartIdx = 0;
-		const windowMinutes = CONFIG.ISSUE_COMMENT_SPAM_WINDOW_MINUTES;
-
-		for (
-			let windowEndIdx = 0;
-			windowEndIdx < commentTimestamps.length;
-			windowEndIdx++
-		) {
-			const windowEnd = commentTimestamps[windowEndIdx]?.time;
-
-			// Slide window start forward until within the time window
-			while (
-				commentTimestamps[windowStartIdx] &&
-				windowEnd &&
-				windowEnd.diff(commentTimestamps[windowStartIdx].time, "minute", true) >
-					windowMinutes
-			) {
-				windowStartIdx++;
-			}
-
-			// Count distinct repos in this time window
-			const reposInWindow = new Set(
-				commentTimestamps
-					.slice(windowStartIdx, windowEndIdx + 1)
-					.map((item) => item.event.repo?.name)
-					.filter((name) => name !== undefined),
-			);
-
-			if (reposInWindow.size > maxDistinctReposInWindow) {
-				maxDistinctReposInWindow = reposInWindow.size;
-				maxReposWindowStartIdx = windowStartIdx;
-				maxReposWindowEndIdx = windowEndIdx;
-			}
-		}
-
-		// Flag if comments are being sprayed across many repos
 		if (maxDistinctReposInWindow >= CONFIG.ISSUE_COMMENT_SPRAY_EXTREME) {
+			const commentTimestamps = issueCommentEvents
+				.map((e) => ({ time: dayjs(e.created_at) }))
+				.sort((a, b) => a.time.valueOf() - b.time.valueOf());
 			const windowStart = commentTimestamps[maxReposWindowStartIdx]?.time;
 			const windowEnd = commentTimestamps[maxReposWindowEndIdx]?.time;
-			const commentsInWindow =
-				maxReposWindowEndIdx - maxReposWindowStartIdx + 1;
+			const commentsInWindow = maxReposWindowEndIdx - maxReposWindowStartIdx + 1;
 			const timeSpanMinutes =
 				windowEnd && windowStart
 					? Math.round(windowEnd.diff(windowStart, "minute", true))
@@ -76,10 +43,12 @@ export function detectCommentSpam(events: GitHubEvent[]): IdentifyFlag[] {
 				detail: `${commentsInWindow} comments to ${maxDistinctReposInWindow} different repos in just ${timeSpanMinutes} minute${timeSpanMinutes === 1 ? "" : "s"}`,
 			});
 		} else if (maxDistinctReposInWindow >= CONFIG.ISSUE_COMMENT_SPRAY_HIGH) {
+			const commentTimestamps = issueCommentEvents
+				.map((e) => ({ time: dayjs(e.created_at) }))
+				.sort((a, b) => a.time.valueOf() - b.time.valueOf());
 			const windowStart = commentTimestamps[maxReposWindowStartIdx]?.time;
 			const windowEnd = commentTimestamps[maxReposWindowEndIdx]?.time;
-			const commentsInWindow =
-				maxReposWindowEndIdx - maxReposWindowStartIdx + 1;
+			const commentsInWindow = maxReposWindowEndIdx - maxReposWindowStartIdx + 1;
 			const timeSpanMinutes =
 				windowEnd && windowStart
 					? Math.round(windowEnd.diff(windowStart, "minute", true))
@@ -99,63 +68,26 @@ export function detectCommentSpam(events: GitHubEvent[]): IdentifyFlag[] {
 	);
 
 	if (prCommentEvents.length >= CONFIG.PR_COMMENT_MIN_FOR_SPRAY) {
-		// Sort by timestamp
-		const prCommentTimestamps = prCommentEvents
-			.map((e) => ({ event: e, time: dayjs(e.created_at) }))
-			.sort((a, b) => a.time.valueOf() - b.time.valueOf());
+		const burst = findDensestBurst(
+			prCommentEvents,
+			(e) => {
+				const repoName = e.repo?.name;
+				const prNumber = e.payload?.pull_request?.number;
+				if (repoName && prNumber) {
+					return `${repoName}#${prNumber}`;
+				}
+				return repoName;
+			},
+			CONFIG.PR_COMMENT_SPAM_WINDOW_MINUTES,
+		);
+		const maxDistinctPRsInWindow = burst.maxKeyCount;
+		const maxPRsWindowStartIdx = burst.startIdx;
+		const maxPRsWindowEndIdx = burst.endIdx;
 
-		// Find the densest window of PR comment activity
-		let maxDistinctPRsInWindow = 0;
-		let maxPRsWindowStartIdx = 0;
-		let maxPRsWindowEndIdx = 0;
-		let windowStartIdx = 0;
-		const windowMinutes = CONFIG.PR_COMMENT_SPAM_WINDOW_MINUTES;
-
-		for (
-			let windowEndIdx = 0;
-			windowEndIdx < prCommentTimestamps.length;
-			windowEndIdx++
-		) {
-			const windowEnd = prCommentTimestamps[windowEndIdx]?.time;
-
-			// Slide window start forward until within the time window
-			while (
-				prCommentTimestamps[windowStartIdx] &&
-				windowEnd &&
-				windowEnd.diff(
-					prCommentTimestamps[windowStartIdx].time,
-					"minute",
-					true,
-				) > windowMinutes
-			) {
-				windowStartIdx++;
-			}
-
-			// Count distinct PRs (identified by repo + pull request number combination)
-			const prsInWindow = new Set(
-				prCommentTimestamps
-					.slice(windowStartIdx, windowEndIdx + 1)
-					.map((item) => {
-						const repoName = item.event.repo?.name;
-						const prNumber = item.event.payload?.pull_request?.number;
-
-						if (repoName && prNumber) {
-							return `${repoName}#${prNumber}`;
-						}
-						return repoName;
-					})
-					.filter((key) => key !== undefined),
-			);
-
-			if (prsInWindow.size > maxDistinctPRsInWindow) {
-				maxDistinctPRsInWindow = prsInWindow.size;
-				maxPRsWindowStartIdx = windowStartIdx;
-				maxPRsWindowEndIdx = windowEndIdx;
-			}
-		}
-
-		// Flag if comments are being sprayed across many PRs
 		if (maxDistinctPRsInWindow >= CONFIG.PR_COMMENT_SPRAY_EXTREME) {
+			const prCommentTimestamps = prCommentEvents
+				.map((e) => ({ time: dayjs(e.created_at) }))
+				.sort((a, b) => a.time.valueOf() - b.time.valueOf());
 			const windowStart = prCommentTimestamps[maxPRsWindowStartIdx]?.time;
 			const windowEnd = prCommentTimestamps[maxPRsWindowEndIdx]?.time;
 			const commentsInWindow = maxPRsWindowEndIdx - maxPRsWindowStartIdx + 1;
@@ -170,6 +102,9 @@ export function detectCommentSpam(events: GitHubEvent[]): IdentifyFlag[] {
 				detail: `${commentsInWindow} comments on ${maxDistinctPRsInWindow} different PRs in just ${timeSpanMinutes} minute${timeSpanMinutes === 1 ? "" : "s"}`,
 			});
 		} else if (maxDistinctPRsInWindow >= CONFIG.PR_COMMENT_SPRAY_HIGH) {
+			const prCommentTimestamps = prCommentEvents
+				.map((e) => ({ time: dayjs(e.created_at) }))
+				.sort((a, b) => a.time.valueOf() - b.time.valueOf());
 			const windowStart = prCommentTimestamps[maxPRsWindowStartIdx]?.time;
 			const windowEnd = prCommentTimestamps[maxPRsWindowEndIdx]?.time;
 			const commentsInWindow = maxPRsWindowEndIdx - maxPRsWindowStartIdx + 1;
