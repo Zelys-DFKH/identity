@@ -16,9 +16,9 @@ function checkSpray(
 	const tier = tiers.find(([threshold]) => burst.maxKeyCount >= threshold);
 	if (!tier) return [];
 	const [, label, points] = tier;
-	const timestamps = sortByDate(events.map((e) => ({ time: dayjs(e.created_at) })));
-	const start = timestamps[burst.startIdx]?.time;
-	const end = timestamps[burst.endIdx]?.time;
+	const timestamps = events.map((e) => dayjs(e.created_at)).sort((a, b) => a.valueOf() - b.valueOf());
+	const start = timestamps[burst.startIdx];
+	const end = timestamps[burst.endIdx];
 	const mins = end && start ? Math.round(end.diff(start, "minute", true)) : 0;
 	const count = burst.endIdx - burst.startIdx + 1;
 	return [{
