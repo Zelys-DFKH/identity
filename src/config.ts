@@ -19,7 +19,6 @@ export const CONFIG = {
 	FORKS_HIGH: 5, // >= this forks within 24 hours = "multiple forks"
 	FORKS_SURGE_SEVERE: 20, // >= this forks within 24 hours = severe automation
 	FORKS_SURGE_EXTREME_HIGH: 35, // >= this forks within 24 hours = extreme automation
-	FORK_SURGE_WINDOW_HOURS: 24, // time window to detect fork clustering (spam is spam)
 	POINTS_FORK_SURGE: 51, // points for 8-19 forks in 24 hours
 	POINTS_FORK_SURGE_SEVERE: 70, // points for 20-34 forks in 24 hours
 	POINTS_FORK_SURGE_EXTREME_HIGH: 85, // points for 35+ forks in 24 hours
@@ -67,7 +66,6 @@ export const CONFIG = {
 	// Distributed PR spam (high PR count + many repos)
 	PRS_SPAM_VOLUME: 50, // PR count threshold for combined check
 	REPOS_SPAM_SPREAD: 15, // repos threshold for combined check
-	POINTS_PR_SPAM_COMBINED: 45, // for combined high PR + repo spread
 
 	// Distributed PR spam density guards (prevent flagging long-term contributors)
 	PRS_SPAM_DENSITY_PER_WEEK: 15, // >= this PRs/week = suspicious density (distributed spam)
@@ -84,8 +82,6 @@ export const CONFIG = {
 	POINTS_EXTERNAL_FOCUS: 20,
 
 	// Zero repos with activity
-	ZERO_REPOS_MIN_EVENTS: 20, // 0 repos but this many events = suspicious
-	POINTS_ZERO_REPOS_ACTIVE: 20,
 
 	// Activity density (events per day)
 	ACTIVITY_DENSITY_HIGH: 8, // >= this events/day average
@@ -109,13 +105,11 @@ export const CONFIG = {
 
 	// 24/7 activity pattern (no sleep) - adjusted for fewer false positives
 	HOURS_ACTIVE_EXTREME: 21, // activity across 21+ hours = suspicious (no realistic sleep)
-	HOURS_ACTIVE_EXTREME_ESTABLISHED: 23, // stricter threshold for established accounts (23+ hours)
 	EVENTS_PER_HOUR_MIN: 2.0, // minimum events per active hour for 24/7 pattern
 	POINTS_24_7_ACTIVITY: 25,
 	AGE_ESTABLISHED_ACCOUNT: 1000, // accounts older than this (days) use stricter thresholds
 
 	// Event type diversity (bots have narrow activity)
-	EVENT_TYPE_DIVERSITY_MIN: 2, // <= 2 event types = very limited diversity
 	POINTS_LOW_DIVERSITY: 20,
 
 	// Issue comment spam (multiple comments to different repos in short timeframe)
