@@ -152,3 +152,47 @@ export function findDensestBurst<T extends { created_at?: string | null }>(
 	}
 	return { maxKeyCount, startIdx: maxStartIdx, endIdx: maxEndIdx };
 }
+
+/** Filter events within a time window relative to a reference time. */
+export function filterByTimeWindow<T extends { created_at?: string | null }>(
+	events: T[],
+	refTime: ReturnType<typeof dayjs>,
+	windowAmount: number,
+	windowUnit: dayjs.ManipulateType,
+): T[] {
+	const windowStart = refTime.subtract(windowAmount, windowUnit);
+	return events.filter((e) => dayjs(e.created_at).isAfter(windowStart));
+}
+
+/** Match consecutive pairs between sorted time-ordered arrays within time window. Returns match count and max time diff. */
+export function matchConsecutivePairsInWindow<T extends { created_at?: string | null }>(
+	sourceEvents: T[],
+	targetEvents: T[],
+	windowSeconds: number,
+): { matchCount: number; maxTimeDiff: number } {
+	const sourceByTime = sourceEvents.map((e) => ({ event: e, time: dayjs(e.created_at) }))
+		.sort((a, b) => a.time.valueOf() - b.time.valueOf());
+	const targetByTime = targetEvents.map((e) => ({ event: e, time: dayjs(e.created_at) }))
+		.sort((a, b) => a.time.valueOf() - b.time.valueOf());
+
+	let matchCount = 0;
+	let maxTimeDiff = 0;
+	let targetIdx = 0;
+
+	for (const source of sourceByTime) {
+		while (targetIdx < targetByTime.length && targetByTime[targetIdx].time.valueOf() < source.time.valueOf()) {
+			targetIdx++;
+		}
+
+		if (targetIdx < targetByTime.length) {
+			const timeDiffSeconds = targetByTime[targetIdx].time.diff(source.time, "second");
+			if (timeDiffSeconds >= 0 && timeDiffSeconds <= windowSeconds) {
+				matchCount++;
+				maxTimeDiff = Math.max(maxTimeDiff, timeDiffSeconds);
+				targetIdx++;
+			}
+		}
+	}
+
+	return { matchCount, maxTimeDiff };
+}

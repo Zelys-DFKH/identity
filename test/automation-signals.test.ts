@@ -6,7 +6,7 @@ import {
 	detectStarConcentration,
 	detectThinProfileBot,
 } from "../src/detectors/automation-signals";
-import type { GitHubEvent, IdentifyProfile } from "../src/types";
+import type { IdentifyProfile } from "../src/types";
 import { makeEvent } from "./utils/get-fixtures";
 
 const ACCOUNT = "testuser";

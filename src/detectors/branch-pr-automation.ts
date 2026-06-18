@@ -1,7 +1,7 @@
 import dayjs from "dayjs";
 import { CONFIG } from "../config";
 import type { GitHubEvent, IdentifyFlag } from "../types";
-import { isOpenedPR, sortByDate, groupByKey } from "../utils";
+import { isOpenedPR, groupByKey, matchConsecutivePairsInWindow } from "../utils";
 
 export function detectBranchPRAutomation(
 	events: GitHubEvent[],
@@ -30,17 +30,13 @@ export function detectBranchPRAutomation(
 		const branchPRRatio = branchCreates.length / prEvents.length;
 
 		if (branchPRRatio >= CONFIG.BRANCH_PR_COUNT_RATIO_MIN) {
-			const branchTimes = sortByDate(branchCreates
-				.map((e) => ({ event: e, time: dayjs(e.created_at) })));
-
-			const prTimes = sortByDate(prEvents
-				.map((e) => ({ event: e, time: dayjs(e.created_at) })));
-
 			const prTimesByRepo = groupByKey(prEvents, (e) => e.repo?.name);
-
 			let matchedPairs = 0;
 			let maxObservedTimeDiff = 0;
 			const prIdxByRepo = new Map<string, number>();
+
+			const branchTimes = branchCreates.map((e) => ({ event: e, time: dayjs(e.created_at) }))
+				.sort((a, b) => a.time.valueOf() - b.time.valueOf());
 
 			for (const branchEntry of branchTimes) {
 				const repoName = branchEntry.event.repo?.name;
@@ -96,64 +92,37 @@ export function detectBranchPRAutomation(
 					});
 				}
 			} else {
-				// Fallback: Check fork-based workflow (branch in fork → PR to upstream same-named repo)
-				let forkWorkflowMatches = 0;
-				let forkMaxTimeDiff = 0;
-
 				const projectNames = new Set<string>();
 				for (const branch of branchTimes) {
 					const repo = branch.event.repo?.name;
 					if (repo) {
 						const projectName = repo.split("/")[1];
-						if (projectName) {
-							projectNames.add(projectName);
-						}
+						if (projectName) projectNames.add(projectName);
 					}
 				}
+
+				let forkWorkflowMatches = 0;
+				let forkMaxTimeDiff = 0;
 
 				for (const projectName of projectNames) {
 					const branchesForProject = branchTimes.filter((b) => {
 						const repoName = b.event.repo?.name;
 						return repoName && repoName.split("/")[1] === projectName;
 					});
-
-					const prsForProject = prTimes.filter((p) => {
-						const repoName = p.event.repo?.name;
+					const prsForProject = prEvents.filter((p) => {
+						const repoName = p.repo?.name;
 						return repoName && repoName.split("/")[1] === projectName;
 					});
 
 					if (branchesForProject.length > 0 && prsForProject.length > 0) {
-						let prIdx = 0;
-						for (const branchEntry of branchesForProject) {
-							while (
-								prIdx < prsForProject.length &&
-								prsForProject[prIdx].time.valueOf() < branchEntry.time.valueOf()
-							) {
-								prIdx++;
-							}
-
-							if (prIdx < prsForProject.length) {
-								const timeDiffSeconds = prsForProject[prIdx].time.diff(
-									branchEntry.time,
-									"second",
-								);
-
-								if (
-									timeDiffSeconds >= 0 &&
-									timeDiffSeconds <= CONFIG.BRANCH_PR_TIME_WINDOW_SECONDS
-								) {
-									forkWorkflowMatches++;
-									forkMaxTimeDiff = Math.max(forkMaxTimeDiff, timeDiffSeconds);
-									prIdx++;
-								}
-							}
-						}
+						const { matchCount, maxTimeDiff } = matchConsecutivePairsInWindow(branchesForProject.map(b => b.event), prsForProject, CONFIG.BRANCH_PR_TIME_WINDOW_SECONDS);
+						forkWorkflowMatches += matchCount;
+						forkMaxTimeDiff = Math.max(forkMaxTimeDiff, maxTimeDiff);
 					}
 				}
 
 				if (forkWorkflowMatches >= branchPRMinPairs) {
 					const automationRatio = forkWorkflowMatches / branchCreates.length;
-
 					if (automationRatio >= branchPRMinRatio) {
 						flags.push({
 							label: "Automated fork/PR workflow",

@@ -1,6 +1,6 @@
 import { CONFIG, LABEL_RAPID_PR_SPAM } from "../config";
 import type { GitHubEvent, IdentifyFlag } from "../types";
-import { isOpenedPR, groupByKey, filterByType } from "../utils";
+import { isOpenedPR, groupByKey } from "../utils";
 
 export function detectRapidPRSpam(
 	events: GitHubEvent[],

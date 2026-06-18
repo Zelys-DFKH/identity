@@ -2,7 +2,7 @@ import dayjs from "dayjs";
 import minMax from "dayjs/plugin/minMax";
 import { CONFIG, LABEL_DISTRIBUTED_PR_SPAM, LABEL_PR_SPAM_DAILY, LABEL_PR_SPAM_WEEKLY, LABEL_PR_SPAM_WEEKLY_HIGH } from "../config";
 import type { GitHubEvent, IdentifyFlag } from "../types";
-import { isOpenedPR, sortByDate, filterByType } from "../utils";
+import { isOpenedPR, filterByTimeWindow } from "../utils";
 
 dayjs.extend(minMax);
 
@@ -18,20 +18,12 @@ export function detectExtremeAndDistributedPRSpam(
 
 	const allPREvents = events.filter(isOpenedPR);
 
-	// Anchor time windows to latest PR in batch for reproducible, stable results
 	const prTimestamps = allPREvents.map((e) => dayjs(e.created_at));
 	const latestPRTime = dayjs.max(prTimestamps) || dayjs();
 	const now = latestPRTime;
-	const oneDayAgo = now.subtract(1, "day");
-	const oneWeekAgo = now.subtract(1, "week");
 
-	// Count PRs in different time windows
-	const prsInLastDay = allPREvents.filter((e) =>
-		dayjs(e.created_at).isAfter(oneDayAgo),
-	);
-	const prsInLastWeek = allPREvents.filter((e) =>
-		dayjs(e.created_at).isAfter(oneWeekAgo),
-	);
+	const prsInLastDay = filterByTimeWindow(allPREvents, now, 1, "day");
+	const prsInLastWeek = filterByTimeWindow(allPREvents, now, 1, "week");
 
 	// Extreme daily spam: 30+ PRs in 24 hours
 	if (prsInLastDay.length >= CONFIG.PRS_DAY_EXTREME) {
@@ -80,12 +72,7 @@ export function detectExtremeAndDistributedPRSpam(
 			);
 
 			if (prTargetRepos.size >= CONFIG.REPOS_SPAM_SPREAD) {
-				// Guard against flagging long-term contributors:
-				// Calculate time density and rolling window
-				const prTimestamps = sortByDate(allPREvents
-					.map((e) => ({ time: dayjs(e.created_at) })))
-					.map((item) => item.time);
-
+				const prTimestamps = allPREvents.map((e) => dayjs(e.created_at)).sort((a, b) => a.valueOf() - b.valueOf());
 				const earliestPR = prTimestamps[0];
 				const latestPR = prTimestamps[prTimestamps.length - 1];
 				const timeSpanDays = latestPR
@@ -97,11 +84,7 @@ export function detectExtremeAndDistributedPRSpam(
 				const prsPerWeek =
 					timeSpanWeeks > 0 ? allPREvents.length / timeSpanWeeks : Infinity;
 
-				// Check rolling 30-day window
-				const thirtyDaysAgo = now.subtract(30, "days");
-				const prsInLast30Days = allPREvents.filter((e) =>
-					dayjs(e.created_at).isAfter(thirtyDaysAgo),
-				).length;
+				const prsInLast30Days = filterByTimeWindow(allPREvents, now, 30, "days").length;
 
 				// Flag if either:
 				// 1. High density (PRs per week exceeds threshold), OR

@@ -31,9 +31,9 @@ export function detectClosedPRSpam(
 	const closedPRTimestamps = closedPREvents.map((e) => dayjs(e.created_at));
 	const earliest = dayjs.min(...closedPRTimestamps);
 	const latest = dayjs.max(...closedPRTimestamps);
-	const timeSpanMinutes = latest.diff(earliest, "minute");
-	const timeSpanDays = latest.diff(earliest, "day");
-	const fractionalDays = latest.diff(earliest, "day", true);
+	const timeSpanMinutes = latest && earliest ? latest.diff(earliest, "minute") : 0;
+	const timeSpanDays = latest && earliest ? latest.diff(earliest, "day") : 0;
+	const fractionalDays = latest && earliest ? latest.diff(earliest, "day", true) : 0;
 	const timeRangeStr =
 		timeSpanDays > 0
 			? `${timeSpanDays}d`
