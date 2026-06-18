@@ -1,117 +1,124 @@
 # identity
 
-> **Fork notice:** This fork adds detectors for human behavioral signals — merged PR activity, review participation, dormancy gaps, engagement longevity — and profile-level signals (pre-AI development history, follower count, identity completeness) to reduce false positives on genuine contributors. These changes were offered upstream and declined. The upstream package remains `@unveil/identity`; this fork is not published to npm.
+This is a TypeScript library for detecting automation abuse in GitHub accounts. It analyzes an account's public event history and profile data, runs it through a set of behavioral checks, and produces a score between 0 and 100 — where 100 is "this looks like a real person" and 0 is "this looks like a machine."
 
-Identify automation patterns in GitHub accounts through behavioral analysis
+## Why this fork exists
 
-This is the core logic behind [AgentScan](https://agentscan.netlify.app), a tool for analyzing GitHub account behavior to detect potential AI agents and automated activity.
+The upstream project frames the problem as detecting "AI agents and automated activity" broadly. That framing caught too much collateral damage — prolific contributors, developers who iterate quickly, people who use AI coding tools — and the maintainers weren't interested in adding signals that credit legitimate human behavior. After offering these improvements upstream and getting them declined, I forked.
 
-Built in response to [increasing reports](https://socket.dev/blog/ai-agent-lands-prs-in-major-oss-projects-targets-maintainers-via-cold-outreach) of AI agents targeting open source projects through automated contributions and cold outreach.
+The goal here is narrower: detect genuine abuse patterns — bot farms running PR spam campaigns, fake contribution schemes, automated accounts that farm stars or flood maintainers with activity. Not every fast-moving contributor. Not every person who uses AI tools to write code.
 
-It applies an opinionated scoring system to GitHub activity signals to classify accounts as organic, mixed, or automation. The results are indicators, not verdicts.
+## How it works
 
-### Install
+The library exports a single `identify()` function. You pass it a GitHub user's account metadata, their recent public events, and optionally their repository list and recent commits. It runs those inputs through about two dozen detectors and returns:
 
-```bash
-npm install @unveil/identity
+```ts
+{
+  score: number,           // 0–100; higher = more human
+  confidence: number,      // 20–95; how many signals corroborate the classification
+  classification: string,  // "organic" | "mixed" | "automation" | "likely_spam" | "legitimate_automation"
+  flags: IdentifyFlag[],   // every signal that fired, with point values and details
+  profile: { age: number, repos: number }
+}
 ```
 
-### Usage
+Each detector returns flags. Flags with positive points are suspicious signals — they push the score toward automation. Flags with negative points are human credit signals — they pull the score back toward organic. The raw sum of flag points gets inverted to produce the final 0–100 score.
 
-```js
-import { identify } from "@unveil/identity";
+Scores of 70 or above classify as `organic`. Between 50 and 70 is `mixed` — something unusual showed up, but there's also evidence of genuine human activity. Below 50 is `automation` by default, or `likely_spam` if one of the explicit spam patterns fired. Known service accounts and bots are classified as `legitimate_automation` immediately, before any scoring happens.
 
-// Fetch user data from GitHub API
-const username = "github_account_username";
-const userRes = await fetch(`https://api.github.com/users/${username}`);
-const user = await userRes.json();
+Two things refine the score beyond the straight flag sum. If the commit history contains a high proportion of AI-attributed commit messages, suspicious flags marked as `amplifiable` get multiplied — this isn't a penalty for using AI tools, it's a way to increase confidence when automation signals already exist and the commits reinforce them. Recent activity also counts more than old activity, so a spam campaign from last week outweighs one from six months ago.
 
-// Fetch user's recent events
-const eventsRes = await fetch(
-  `https://api.github.com/users/${username}/events?per_page=100`
-);
-const events = await eventsRes.json();
+## What it checks
 
-// Analyze the account
-const analysis = identify({
+### Suspicious signals
+
+**Account age.** Newly created accounts (under 30 days) and young accounts (under 90 days) start with a small penalty. This isn't because new contributors are untrustworthy — it's because bot operators routinely create fresh accounts to avoid history-based detection. The penalty is mild and easily outweighed by other signals.
+
+**Mass forking.** Forking 8 or more repositories within 24 hours is a common automation pattern. Star-farming tools, fake engagement campaigns, and contribution-farming scripts all tend to fork-then-do-something in bulk. The thresholds scale: 8–19 forks in a day is suspicious, 35+ is severe.
+
+**24/7 activity and throughput limits.** If an account has essentially no rest window on a given day — active across nearly every hour with fewer than three hours quiet — that's a strong signal. The throughput ceiling goes further: 150 or more write events in a two-hour window is physically beyond what a person can do. That's a machine.
+
+**No circadian pattern.** Across the full event history, a real person's activity will cluster somewhere in the day and go quiet somewhere else. Accounts with no consistent quiet window score higher on this signal.
+
+**Comment spam.** Large bursts of comments spread across many different repositories in a short time window. The check looks for spray patterns — not volume alone, but volume plus distribution. That's the signature of a bot posting templated comments to hundreds of projects.
+
+**PR spam.** Extreme pull request volume: 30 or more PRs in a 24-hour window, 100 or more in a week. There's also a distributed spam check that catches lower-volume but widespread patterns — many PRs across many repositories at a pace that doesn't match organic open-source participation.
+
+**Fork automation with downstream PRs.** The branch and PR automation detector looks for patterns where accounts fork repositories and immediately open pull requests in bulk. That's the classic structure of automated contribution farms.
+
+**Rapid and closed PR spam.** PRs opened very quickly in succession, and accounts with high rates of PRs getting closed without merging, are both signals. The second matters because spam PRs and low-quality automated contributions get closed at higher rates than genuine ones.
+
+**Behavioral monoculture.** Accounts that only do one type of thing — only fork, only comment, only open issues — show the narrow footprint of a script. Real contributors mix it up.
+
+**Thin profile and no repos.** An account with no profile information, no public repositories, but high activity on other people's projects is a common bot shape. This combines with other signals rather than flagging on its own.
+
+**Issue and star bursts.** Rapid-fire issue creation across many repositories, and star concentrations toward a single organization's repos, both follow patterns seen in coordinated campaigns.
+
+**No reciprocity.** Accounts that only consume — starring, watching, forking — without ever contributing back are flagged. Real open-source participants, even casual ones, eventually push code, open an issue, or leave a comment.
+
+### Human credit signals
+
+Every suspicious signal above is balanced by signals that actively credit human behavior. These work as negative-point flags that pull the score back toward organic.
+
+**Merged contributions.** If the account has had pull requests merged in external repositories, that's strong evidence of real engagement. Other people looked at the code, reviewed it, and accepted it. This is the hardest signal to fake at scale.
+
+**Code review participation.** Leaving reviews on other people's pull requests — and especially leaving inline comments on specific lines of code — is something bots rarely do convincingly. This signal rewards reviewers.
+
+**PR iteration cycles.** When a pull request goes through synchronize events — meaning the contributor pushed updates in response to review feedback — that back-and-forth is a human pattern. Automated submissions don't iterate.
+
+**Long-span engagement.** Contributing to the same repository across many days or weeks, rather than doing it all at once and moving on, suggests ongoing investment in a project.
+
+**Day-of-week variation.** Human activity tends to look different on weekdays versus weekends. Accounts with natural variance in their day-of-week distribution get credit for this.
+
+**Dormancy gaps.** Having a quiet stretch in the event history — a period where the account went inactive — is a human signal. Bots don't take breaks.
+
+**Pre-AI development history.** Repositories created before 2022 suggest the account was active before AI coding tools were common. That's consistent with an established developer.
+
+**Account seniority.** Older accounts carry more weight not because age is proof, but because they've had more opportunities to build a track record.
+
+**Followers.** Being followed by other GitHub accounts signals that real people found this account worth tracking.
+
+**Identity completeness.** A filled-out profile — name, bio, company, location — is a small but real signal. Not sufficient on its own, but it adds to the picture.
+
+**Circadian presence.** A consistent quiet window across many days of activity means the account has a sleep schedule. That's a human pattern.
+
+**Gist activity.** Using gists suggests someone writing code for themselves, not just running scripts against other people's repositories.
+
+## What this doesn't do
+
+This library doesn't determine whether someone is using AI coding tools. Using AI assistants, generating commit messages with a language model, or getting code help from any AI tool doesn't make you a bot and doesn't affect your classification. The AI commit attribution check only amplifies existing automation signals — it has no effect if those signals aren't already present.
+
+It also doesn't penalize prolific contributors. Someone genuinely active across many repositories, who opens many pull requests and moves fast, will score well on the human credit signals. Those signals are designed to outweigh the volume-based suspicious ones for legitimate contributors.
+
+The results are indicators, not verdicts. An `automation` classification means the behavioral pattern looks more like a machine than a person — it's a starting point for investigation, not proof of bad intent.
+
+## Usage
+
+```ts
+import { identify } from "@unveil/identity"; // upstream package name; this fork is not published to npm
+
+const result = identify({
   createdAt: user.created_at,
   reposCount: user.public_repos,
   accountName: user.login,
-  events,
+  events,          // from GET /users/{username}/events/public
+  repos,           // from GET /users/{username}/repos (optional, improves pre-AI history check)
+  commits,         // recent commit messages (optional, enables AI attribution check)
+  profile: {
+    followers: user.followers,
+    name: user.name,
+    company: user.company,
+    location: user.location,
+    blog: user.blog,
+    bio: user.bio,
+  },
 });
-
-console.log(analysis);
-// Output:
-// {
-//   classification: "organic",
-//   score: 100,
-//   flags: []
-// }
 ```
 
-### Detection Heuristics
+## Contributing and thresholds
 
-The system analyzes GitHub activity across **39 distinct heuristics** organized into 9 categories. Each heuristic assigns points that are subtracted from a baseline score of 100 (100 = human, 0 = automation).
+All detection thresholds live in `src/config.ts`. They're calibrated against a fixture set of real accounts in `test/fixtures/` and validated by the regression test suite. Before changing a threshold, run `pnpm test` and check that the regression fixtures still classify as expected — the goal is to improve accuracy, not to chase a specific fixture's result.
 
-#### Account Characteristics
-1. **Recently created** - Account < 30 days old
-2. **Young account** - Account 30-90 days old
+If you're adding a new detector, add it to both the detection pipeline in `src/identify.ts` and a corresponding test. The main gate is `test/regression-iter4.test.ts`.
 
-#### Repository Patterns
-3. **Only active on other people's repos** - 0 personal repos but all activity is external
-4. **Concentrated repository creation** - 16+ repos created in 24 hours
-5. **Frequent repository creation** - 8-15 repos created in 24 hours
-
-#### Activity Timing & Sleep Patterns
-6. **24/7 activity pattern** - Single day with activity across many hours and < 3 hour sleep window (per-day analysis only)
-
-#### Event Type Diversity (Shannon Entropy Analysis)
-7. **Narrow activity focus** - Either:
-   - ≤3 event types with low entropy (< 0.8) AND no human interactions, OR
-   - ≥5 event types with very high entropy (> 0.85) AND no human interactions
-
-#### Comment Spam
-8. **Issue comment spam** - 15+ distinct repos in concentrated time window
-9. **High issue comment frequency** - 10-14 distinct repos in concentrated time window
-10. **PR comment spam** - 12+ distinct PRs in concentrated time window
-11. **High PR comment frequency** - 8-11 distinct PRs in concentrated time window
-
-#### Branch/PR Automation
-12. **Automated branch/PR workflow** - Near 1:1 ratio with branches consistently followed by PRs within time window
-
-#### Fork Patterns (Multiple Time Windows)
-13. **Multiple forks** - 5-7 forks in 24 hours
-14. **Fork spike detected** - 8-19 forks in 24 hours
-15. **Severe fork surge** - Variable thresholds in 24h
-16. **Extreme fork automation** - 20+ forks in 24 hours
-17. **Multi-day fork surge** - Concentrated activity over 48 hours
-18. **Severe multi-day fork surge** - Rapid burst over 72 hours
-19. **Sustained fork rate** - High forks/day over 3+ days
-20. **Extended forking pattern** - Forking activity on multiple consecutive days
-21. **Fork scatter pattern** - Targeting many different repositories
-22. **Suspicious chained automations** - Fork → Branch → PR sequence with temporal ordering
-
-#### Young Account Specific Patterns
-23. **Extreme commit burst** - Many commits in 1 hour
-24. **High commit burst** - Moderate commits in 1 hour
-25. **High commit frequency** - Tight bursts within seconds
-26. **Very high PR volume** - High PRs/day ratio
-27. **High PR volume** - Moderate PRs/day ratio
-28. **Extended daily coding** - Consecutive marathon days (15+ hours)
-29. **Frequent long coding days** - Multiple days with 15+ hours and uniform hourly distribution
-30. **Highly distributed activity** - Activity across many external repos
-31. **Distributed activity** - Activity across external repos
-32. **High PR volume in the past 24 hours** - Burst of PRs to external repos
-33. **High PR volume during last week** - Weekly PR surge to external repos
-34. **Primarily external contributions** - Many PRs but few/no personal repos
-35. **Mostly external activity** - High % of activity on others' repos
-
-#### PR Spam Patterns
-36. **Extreme PR spam (daily)** - 30+ PRs in 24 hours
-37. **Extreme PR spam (weekly)** - 100+ PRs in 7 days
-38. **Very high PR spam frequency** - 50+ PRs in 7 days
-39. **Distributed PR spam pattern** - High PR count across many repos with high density OR 30-day window spam
-
-### Issues and feature requests
-
-Please drop an issue if you find something that doesn't work, or have an idea for something that works better.
+This fork diverges from the upstream `@unveil/identity` package and is not published to npm.
