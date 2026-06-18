@@ -56,12 +56,7 @@ export function detectExtremeAndDistributedPRSpam(
 
 	// Distributed PR spam: high PR count across many repos (skip if time-based flag present)
 	if (allPREvents.length >= CONFIG.PRS_SPAM_VOLUME) {
-		const hasTimeBasedFlag = flags.some(
-			(f) =>
-				f.label === "Extreme PR spam (daily)" ||
-				f.label === "Extreme PR spam (weekly)" ||
-				f.label === "Very high PR spam frequency",
-		);
+		const hasTimeBasedFlag = flags.some((f) => f.label === LABEL_PR_SPAM_DAILY || f.label === LABEL_PR_SPAM_WEEKLY || f.label === LABEL_PR_SPAM_WEEKLY_HIGH);
 
 		if (!hasTimeBasedFlag) {
 			// Count distinct repos targeted by PRs

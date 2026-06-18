@@ -182,13 +182,7 @@ export function detectYoungAccountActivity(
 
 	// External repo spread - Only count repos the user doesn't own, established OSS devs often contribute widely
 	const externalRepos = new Set(
-		events
-			.map((e) => e.repo?.name)
-			.filter((name) => {
-				if (!name) return false;
-				const repoOwner = name.split("/")[0]?.toLowerCase();
-				return repoOwner !== userLogin;
-			}),
+		events.filter((e) => e.repo?.name && getRepoOwner(e) !== userLogin).map((e) => e.repo?.name),
 	);
 
 	if (externalRepos.size >= CONFIG.REPO_SPREAD_EXTREME) {
