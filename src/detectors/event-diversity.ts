@@ -13,11 +13,9 @@ export function detectNarrowActivityFocus(
 
 	// Bots have narrow profiles (low entropy); humans show varied activity (high entropy)
 	const eventTypeMap = new Map<string, number>();
-	events.forEach((e) => {
-		if (e.type) {
-			eventTypeMap.set(e.type, (eventTypeMap.get(e.type) || 0) + 1);
-		}
-	});
+	for (const e of events) {
+		if (e.type) eventTypeMap.set(e.type, (eventTypeMap.get(e.type) || 0) + 1);
+	}
 
 	const eventTypeCount = Array.from(eventTypeMap.values());
 	const eventTypeEntropy = calculateNormalizedShannonsEntropy(eventTypeCount);

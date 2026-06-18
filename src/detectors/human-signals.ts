@@ -18,6 +18,10 @@ function tieredFlag(
 	return tier ? { label: tier[1], points: tier[2], detail, ...extra } : undefined;
 }
 
+function filterByTypeAndExternal(events: GitHubEvent[], type: string, accountName: string): GitHubEvent[] {
+	return events.filter((e) => e.type === type && isExternalEvent(e, accountName));
+}
+
 export function detectMergedContributions(
 	events: GitHubEvent[],
 	accountName: string,
@@ -41,7 +45,7 @@ export function detectReviewActivity(
 	events: GitHubEvent[],
 	accountName: string,
 ): IdentifyFlag[] {
-	const prReviews = events.filter((e) => e.type === "PullRequestReviewEvent" && isExternalEvent(e, accountName));
+	const prReviews = filterByTypeAndExternal(events, "PullRequestReviewEvent", accountName);
 	const flag = tieredFlag(prReviews.length, `${prReviews.length} PR reviews on external repositories`, [
 		[CONFIG.REVIEW_EVENTS_HIGH, "Active code reviewer", CONFIG.POINTS_REVIEW_ACTIVITY_HIGH],
 		[CONFIG.REVIEW_EVENTS_BASE, "Code reviewer", CONFIG.POINTS_REVIEW_ACTIVITY],
@@ -53,7 +57,7 @@ export function detectReviewCommentActivity(
 	events: GitHubEvent[],
 	accountName: string,
 ): IdentifyFlag[] {
-	const prComments = events.filter((e) => e.type === "PullRequestReviewCommentEvent" && isExternalEvent(e, accountName));
+	const prComments = filterByTypeAndExternal(events, "PullRequestReviewCommentEvent", accountName);
 	const flag = tieredFlag(prComments.length, `${prComments.length} inline review comments on external repositories`, [
 		[CONFIG.REVIEW_COMMENT_EVENTS_HIGH, "Inline review commenter", CONFIG.POINTS_REVIEW_COMMENTS_HIGH],
 		[CONFIG.REVIEW_COMMENT_EVENTS_BASE, "Inline review commenter", CONFIG.POINTS_REVIEW_COMMENTS],

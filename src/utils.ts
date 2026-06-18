@@ -6,11 +6,6 @@ export function getRepoOwner(e: GitHubEvent | undefined | null): string | undefi
 	return e?.repo?.name?.split("/")[0]?.toLowerCase();
 }
 
-/** Extract repo owner from a repo name string (e.g., "owner/repo" → "owner"). */
-export function getRepoOwnerFromName(repoName: string | undefined | null): string | undefined {
-	return repoName?.split("/")[0]?.toLowerCase();
-}
-
 /** Check if event is a PR opened action. */
 export function isOpenedPR(e: GitHubEvent | undefined | null): boolean {
 	return e?.type === "PullRequestEvent" && e?.payload?.action === "opened";

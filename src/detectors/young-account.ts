@@ -2,7 +2,7 @@ import dayjs from "dayjs";
 import minMax from "dayjs/plugin/minMax";
 import { CONFIG } from "../config";
 import type { GitHubEvent, IdentifyFlag } from "../types";
-import { calculateNormalizedShannonsEntropy, getRepoOwner, getRepoOwnerFromName, isOpenedPR, sortByDate, filterByType } from "../utils";
+import { calculateNormalizedShannonsEntropy, getRepoOwner, isOpenedPR, filterByType, findMaxEventsInWindow } from "../utils";
 
 dayjs.extend(minMax);
 
@@ -23,32 +23,12 @@ export function detectYoungAccountActivity(
 	const commitEvents = filterByType(events, "PushEvent");
 
 	if (commitEvents.length >= CONFIG.MIN_EVENTS_FOR_ANALYSIS) {
-		const timestamps = sortByDate(commitEvents
-			.map((e) => ({ time: dayjs(e.created_at) })))
-			.map((item) => item.time);
+		const timestamps = commitEvents
+			.map((e) => dayjs(e.created_at))
+			.sort((a, b) => a.valueOf() - b.valueOf());
 
 		// Analyze event temporal distribution - detect burst patterns
-		let maxCommitsInHour = 0;
-		let windowStartIndex = 0;
-
-		for (
-			let windowEndIndex = 0;
-			windowEndIndex < timestamps.length;
-			windowEndIndex++
-		) {
-			const windowEnd = timestamps[windowEndIndex];
-
-			// Slide window start forward until within 1 hour
-			while (
-				windowEnd &&
-				windowEnd.diff(timestamps[windowStartIndex], "hour", true) > 1
-			) {
-				windowStartIndex++;
-			}
-
-			const commitsInWindow = windowEndIndex - windowStartIndex + 1;
-			maxCommitsInHour = Math.max(maxCommitsInHour, commitsInWindow);
-		}
+		const maxCommitsInHour = findMaxEventsInWindow(timestamps, 1);
 
 		// Extreme burst (regardless of distribution)
 		if (maxCommitsInHour >= CONFIG.HOURLY_ACTIVITY_EXTREME) {
@@ -199,15 +179,13 @@ export function detectYoungAccountActivity(
 		}
 	}
 
-	// External repo spread
-	// Only count repos the user doesn't own
-	// Only flag for young accounts - established OSS devs often contribute widely
+	// External repo spread - Only count repos the user doesn't own, established OSS devs often contribute widely
 	const externalRepos = new Set(
 		events
 			.map((e) => e.repo?.name)
 			.filter((name) => {
 				if (!name) return false;
-				const repoOwner = getRepoOwnerFromName(name);
+				const repoOwner = name.split("/")[0]?.toLowerCase();
 				return repoOwner !== userLogin;
 			}),
 	);
