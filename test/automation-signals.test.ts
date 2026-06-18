@@ -6,6 +6,7 @@ import {
 	detectStarConcentration,
 	detectThinProfileBot,
 } from "../src/detectors/automation-signals";
+import { detectBranchPRAutomation } from "../src/detectors/branch-pr-automation";
 import type { IdentifyProfile } from "../src/types";
 import { makeEvent } from "./utils/get-fixtures";
 
@@ -347,5 +348,60 @@ describe("detectConsumerNoReciprocity", () => {
 			makeEvent("PullRequestReviewCommentEvent", "org/other-repo", "2024-01-03T00:00:00Z"),
 		];
 		expect(detectConsumerNoReciprocity(events, ACCOUNT)).toHaveLength(0);
+	});
+});
+
+describe("detectBranchPRAutomation - fork workflow boundary", () => {
+	it("flags fork/PR workflow when all pairs are within the window (< 90s)", () => {
+		// Fork-workflow path: branches in user/projN, PRs in upstream/projN (same project name, different owner).
+		// Both direct and fork paths use exclusive upper bound (< BRANCH_PR_TIME_WINDOW_SECONDS).
+		// This test verifies the fork path counts 8 matches at 89s and fires the flag.
+		// A pair at exactly 90s would be excluded; at 89s it is included.
+		const base = new Date("2024-06-01T10:00:00Z").getTime();
+		const SEC = 1000;
+		const events = [
+			...Array.from({ length: 7 }, (_, i) => makeEvent(
+				"CreateEvent",
+				`testuser/proj${i}`,
+				new Date(base + i * 300 * SEC).toISOString(),
+				{ ref_type: "branch", ref: `feature-${i}` },
+			)),
+			makeEvent("CreateEvent", "testuser/proj7", new Date(base + 7 * 300 * SEC).toISOString(), { ref_type: "branch", ref: "feature-7" }),
+			...Array.from({ length: 7 }, (_, i) => makeEvent(
+				"PullRequestEvent",
+				`upstream/proj${i}`,
+				new Date(base + i * 300 * SEC + 30 * SEC).toISOString(),
+				{ action: "opened", pull_request: { number: i + 1 } },
+			)),
+			// 8th PR at 89s (inside exclusive window of 90s) — must be counted
+			makeEvent("PullRequestEvent", "upstream/proj7", new Date(base + 7 * 300 * SEC + 89 * SEC).toISOString(), { action: "opened", pull_request: { number: 8 } }),
+		];
+		const flags = detectBranchPRAutomation(events, 365);
+		expect(flags.some((f) => f.label === "Automated fork/PR workflow")).toBe(true);
+	});
+
+	it("does not flag fork/PR workflow when boundary pair is at exactly the window limit (exclusive)", () => {
+		// A pair at exactly 90s is excluded by the exclusive upper bound (< 90), leaving only 7 matches — below the 8-pair threshold.
+		const base = new Date("2024-06-01T10:00:00Z").getTime();
+		const SEC = 1000;
+		const events = [
+			...Array.from({ length: 7 }, (_, i) => makeEvent(
+				"CreateEvent",
+				`testuser/proj${i}`,
+				new Date(base + i * 300 * SEC).toISOString(),
+				{ ref_type: "branch", ref: `feature-${i}` },
+			)),
+			makeEvent("CreateEvent", "testuser/proj7", new Date(base + 7 * 300 * SEC).toISOString(), { ref_type: "branch", ref: "feature-7" }),
+			...Array.from({ length: 7 }, (_, i) => makeEvent(
+				"PullRequestEvent",
+				`upstream/proj${i}`,
+				new Date(base + i * 300 * SEC + 30 * SEC).toISOString(),
+				{ action: "opened", pull_request: { number: i + 1 } },
+			)),
+			// 8th PR at exactly 90s — excluded by exclusive window, only 7 matches, no flag
+			makeEvent("PullRequestEvent", "upstream/proj7", new Date(base + 7 * 300 * SEC + 90 * SEC).toISOString(), { action: "opened", pull_request: { number: 8 } }),
+		];
+		const flags = detectBranchPRAutomation(events, 365);
+		expect(flags.some((f) => f.label === "Automated fork/PR workflow")).toBe(false);
 	});
 });

@@ -56,7 +56,7 @@ export function detectBranchPRAutomation(
 
 					if (
 						timeDiffSeconds >= 0 &&
-						timeDiffSeconds <= CONFIG.BRANCH_PR_TIME_WINDOW_SECONDS
+						timeDiffSeconds < CONFIG.BRANCH_PR_TIME_WINDOW_SECONDS
 					) {
 						matchedPairs++;
 						maxObservedTimeDiff = Math.max(
