@@ -26,6 +26,21 @@ export function filterByType(events: GitHubEvent[], type: string): GitHubEvent[]
 	return events.filter((e) => e.type === type);
 }
 
+/** Filter branch creation events. */
+export function filterBranchCreates(events: GitHubEvent[]): GitHubEvent[] {
+	return events.filter((e) => e.type === "CreateEvent" && e.payload?.ref_type === "branch");
+}
+
+/** Filter repository creation events. */
+export function filterRepoCreates(events: GitHubEvent[]): GitHubEvent[] {
+	return events.filter((e) => e.type === "CreateEvent" && e.payload?.ref_type === "repository");
+}
+
+/** Select config value based on whether account is established. */
+export function selectByAccountAge<T>(accountAge: number, threshold: number, ifEstablished: T, ifYoung: T): T {
+	return accountAge >= threshold ? ifEstablished : ifYoung;
+}
+
 export function isExternalEvent(e: GitHubEvent | undefined | null, accountName: string): boolean {
 	const owner = getRepoOwner(e);
 	return !!owner && owner !== accountName.toLowerCase();

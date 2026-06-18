@@ -1,6 +1,6 @@
 import { CONFIG } from "../config";
 import type { GitHubEvent, IdentifyFlag } from "../types";
-import { isOpenedPR, groupByKey, matchConsecutivePairsInWindow, toTimestamped } from "../utils";
+import { isOpenedPR, groupByKey, matchConsecutivePairsInWindow, toTimestamped, filterBranchCreates, selectByAccountAge } from "../utils";
 
 export function detectBranchPRAutomation(
 	events: GitHubEvent[],
@@ -8,17 +8,10 @@ export function detectBranchPRAutomation(
 ): IdentifyFlag[] {
 	const flags: IdentifyFlag[] = [];
 
-	const isEstablished = accountAge >= CONFIG.AGE_ESTABLISHED_ACCOUNT; // repeated branch→PR correlations detect automated CI/CD workflows
-	const branchPRMinPairs = isEstablished
-		? CONFIG.BRANCH_PR_PATTERN_MIN_PAIRS_ESTABLISHED
-		: CONFIG.BRANCH_PR_PATTERN_MIN_PAIRS;
-	const branchPRMinRatio = isEstablished
-		? CONFIG.BRANCH_PR_PATTERN_RATIO_MIN_ESTABLISHED
-		: CONFIG.BRANCH_PR_PATTERN_RATIO_MIN;
+	const branchPRMinPairs = selectByAccountAge(accountAge, CONFIG.AGE_ESTABLISHED_ACCOUNT, CONFIG.BRANCH_PR_PATTERN_MIN_PAIRS_ESTABLISHED, CONFIG.BRANCH_PR_PATTERN_MIN_PAIRS);
+	const branchPRMinRatio = selectByAccountAge(accountAge, CONFIG.AGE_ESTABLISHED_ACCOUNT, CONFIG.BRANCH_PR_PATTERN_RATIO_MIN_ESTABLISHED, CONFIG.BRANCH_PR_PATTERN_RATIO_MIN);
 
-	const branchCreates = events.filter(
-		(e) => e.type === "CreateEvent" && e.payload?.ref_type === "branch",
-	);
+	const branchCreates = filterBranchCreates(events);
 	const prEvents = events.filter(isOpenedPR);
 
 	if (

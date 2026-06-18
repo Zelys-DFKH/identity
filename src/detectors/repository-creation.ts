@@ -1,7 +1,7 @@
 import dayjs from "dayjs";
 import { CONFIG } from "../config";
 import type { GitHubEvent, IdentifyFlag } from "../types";
-import { findMaxEventsInWindow } from "../utils";
+import { findMaxEventsInWindow, filterRepoCreates } from "../utils";
 
 export function detectRepositoryCreationBurst(
 	events: GitHubEvent[],
@@ -9,9 +9,7 @@ export function detectRepositoryCreationBurst(
 	const flags: IdentifyFlag[] = [];
 	if (events.length < CONFIG.MIN_EVENTS_FOR_ANALYSIS) return flags;
 
-	const createEvents = events.filter((e) =>
-		e.type === "CreateEvent" && e.payload?.ref_type === "repository",
-	);
+	const createEvents = filterRepoCreates(events);
 	if (createEvents.length >= CONFIG.CREATE_EVENTS_MIN) {
 		const createTimestamps = createEvents
 			.map((e) => dayjs(e.created_at))

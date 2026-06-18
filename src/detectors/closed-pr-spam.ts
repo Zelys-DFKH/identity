@@ -1,7 +1,7 @@
 import dayjs from "dayjs";
 import { CONFIG, LABEL_CLOSED_PR_SPAM_BURST, LABEL_CLOSED_PR_SPAM_SCATTER } from "../config";
 import type { GitHubEvent, IdentifyFlag } from "../types";
-import { isClosedPR } from "../utils";
+import { isClosedPR, selectByAccountAge } from "../utils";
 
 export function detectClosedPRSpam(
 	events: GitHubEvent[],
@@ -9,11 +9,7 @@ export function detectClosedPRSpam(
 ): IdentifyFlag[] {
 	const flags: IdentifyFlag[] = [];
 
-	// Detects two patterns: scatter (rejections across many repos) or burst (many rejections in short window)
-	const isEstablished = accountAge >= CONFIG.AGE_ESTABLISHED_ACCOUNT;
-	const minClosedPRs = isEstablished
-		? CONFIG.CLOSED_PR_SPAM_MIN_ESTABLISHED
-		: CONFIG.CLOSED_PR_SPAM_MIN;
+	const minClosedPRs = selectByAccountAge(accountAge, CONFIG.AGE_ESTABLISHED_ACCOUNT, CONFIG.CLOSED_PR_SPAM_MIN_ESTABLISHED, CONFIG.CLOSED_PR_SPAM_MIN);
 
 	const closedPREvents = events.filter(isClosedPR);
 
