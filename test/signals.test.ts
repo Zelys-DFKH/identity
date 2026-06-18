@@ -1612,6 +1612,30 @@ describe("identify - SPAM_SIGNAL_LABELS coverage", () => {
 		expect(result.classification).toBe("likely_spam");
 	});
 
+	it("does not flag non-consecutive PR pairs with gaps exceeding window", () => {
+		// Regression test for rapid-pr-spam consecutive pairs bug
+		// 5 PRs with pattern: [0s, 45s (gap 45s), 180s (gap 135s > window), 225s (gap 45s), 270s (gap 45s)]
+		// Window: 90s
+		// Should NOT flag: only 3 consecutive PRs (225-270s gap), not 4 minRapidPRs
+		const base = new Date("2026-03-10T01:00:00Z").getTime();
+		const times = [0, 45 * 1000, 180 * 1000, 225 * 1000, 270 * 1000];
+		const events: GitHubEvent[] = times.map((offset) => ({
+			type: "PullRequestEvent",
+			payload: { action: "opened" },
+			created_at: new Date(base + offset).toISOString(),
+			repo: { name: "victim/repo" },
+		} as GitHubEvent));
+
+		const result = identify({
+			createdAt: "2026-02-15T00:00:00Z",
+			reposCount: 1,
+			accountName: "pseudospammer",
+			events,
+		});
+
+		expect(result.flags.some((f) => f.label === "Rapid PR spam to repository")).toBe(false);
+	});
+
 	it("classifies 'Closed PR spam burst' label as likely_spam", () => {
 		// 5 closed PRs across 2 repos in 30min → burst (+35); recently created (+20) → score=55 → humanScore=45 → likely_spam
 		const base = new Date("2026-03-10T02:00:00Z").getTime();
