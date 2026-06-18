@@ -1,6 +1,6 @@
 import { CONFIG } from "../config";
 import type { GitHubEvent, IdentifyFlag } from "../types";
-import { calculateNormalizedShannonsEntropy } from "../utils";
+import { calculateNormalizedShannonsEntropy, isExternalEvent } from "../utils";
 
 export function detectNarrowActivityFocus(
 	events: GitHubEvent[],
@@ -49,4 +49,37 @@ export function detectNarrowActivityFocus(
 	}
 
 	return flags;
+}
+
+export function detectPushEventDiversity(
+	events: GitHubEvent[],
+	accountName: string,
+): IdentifyFlag[] {
+	const externalOwners = new Set<string>();
+	for (const e of events) {
+		if (e.type !== "PushEvent" || !isExternalEvent(e, accountName)) continue;
+		const name = e.repo?.name;
+		if (name) externalOwners.add(name.split("/")[0]);
+	}
+	if (externalOwners.size < CONFIG.PUSH_DIVERSITY_MIN_OWNERS) return [];
+	return [{
+		label: "Push diversity",
+		points: CONFIG.POINTS_PUSH_DIVERSITY,
+		detail: `Pushes to ${externalOwners.size} distinct external repo owners`,
+	}];
+}
+
+export function detectInteractionDominance(events: GitHubEvent[]): IdentifyFlag[] {
+	if (events.length < CONFIG.INTERACTION_MIN_EVENTS) return [];
+	const interactionTypes = new Set(["IssueCommentEvent", "PullRequestReviewEvent", "PullRequestReviewCommentEvent"]);
+	const interactionEvents = events.filter((e) => e.type && interactionTypes.has(e.type));
+	if (interactionEvents.length / events.length < CONFIG.INTERACTION_DOMINANCE_RATIO) return [];
+	const distinctRepos = new Set(interactionEvents.map((e) => e.repo?.name).filter(Boolean)).size;
+	if (distinctRepos < CONFIG.INTERACTION_MIN_REPOS) return [];
+	const pct = Math.round((interactionEvents.length / events.length) * 100);
+	return [{
+		label: "Interaction-focused contributor",
+		points: CONFIG.POINTS_INTERACTION_DOMINANCE,
+		detail: `${interactionEvents.length}/${events.length} events (${pct}%) are interactions across ${distinctRepos} repos`,
+	}];
 }

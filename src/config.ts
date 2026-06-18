@@ -10,6 +10,8 @@ export const CONFIG = {
 	// Account age penalty points
 	POINTS_NEW_ACCOUNT: 20,
 	POINTS_YOUNG_ACCOUNT: 10,
+	POINTS_YOUNG_ACCOUNT_GRACE_BOTH: -12,
+	POINTS_YOUNG_ACCOUNT_GRACE_ONE: -6,
 
 	// Minimum events required for activity analysis
 	MIN_EVENTS_FOR_ANALYSIS: 10,
@@ -112,6 +114,16 @@ export const CONFIG = {
 	// Event type diversity (bots have narrow activity)
 	POINTS_LOW_DIVERSITY: 20,
 
+	// Interaction dominance (positive signal for interaction-focused contributors)
+	INTERACTION_MIN_EVENTS: 20, // minimum total events to analyze interaction dominance
+	INTERACTION_DOMINANCE_RATIO: 0.6, // >= this ratio of events are interaction-type
+	INTERACTION_MIN_REPOS: 2,
+	POINTS_INTERACTION_DOMINANCE: -8, // mitigating points for interaction-focused contributor
+
+	// Push event diversity (exemption when pushing to many different external owners)
+	PUSH_DIVERSITY_MIN_OWNERS: 5,
+	POINTS_PUSH_DIVERSITY: -10,
+
 	// Issue comment spam (multiple comments to different repos in short timeframe)
 	ISSUE_COMMENT_SPAM_WINDOW_MINUTES: 2, // time window to group comments
 	ISSUE_COMMENT_SPRAY_EXTREME: 15, // >= this different repos = comment spray bot
@@ -213,6 +225,7 @@ export const CONFIG = {
 	MERGED_PR_REPOS_HIGH: 8,
 	POINTS_ESTABLISHED_CONTRIBUTOR: -5,
 	POINTS_ESTABLISHED_CONTRIBUTOR_HIGH: -10,
+	POINTS_ESTABLISHED_CONTRIBUTOR_EXEMPTION: -15,
 
 	// Review activity (PullRequestReviewEvent on external repos)
 	REVIEW_EVENTS_BASE: 5,
@@ -263,6 +276,21 @@ export const CONFIG = {
 	],
 
 	// Temporal event degradation: bot-signal scores decay with exponential half-life (days).
+
+	// Impossible throughput detection
+	THROUGHPUT_WINDOW_MS: 2 * 60 * 60 * 1000,
+	THROUGHPUT_CEILING: 150,
+	POINTS_IMPOSSIBLE_THROUGHPUT: 60,
+
+	// Circadian rhythm analysis
+	CIRCADIAN_MIN_EVENTS: 50,
+	CIRCADIAN_QUIET_HOURS: 4,
+	CIRCADIAN_QUIET_THRESHOLD: 2,
+	POINTS_CIRCADIAN_ABSENCE: 25,
+	CIRCADIAN_PRESENCE_MIN_HOURS: 3,
+	CIRCADIAN_MIN_DAYS: 7,
+	CIRCADIAN_MIN_ACTIVE_HOURS: 3,
+	POINTS_CIRCADIAN_PRESENCE: -10,
 	TEMPORAL_DECAY_HALF_LIFE_DAYS: 90,
 } as const;
 
@@ -297,6 +325,7 @@ export const LABEL_PR_SPAM_WEEKLY = "Extreme PR spam (weekly)";
 export const LABEL_PR_SPAM_WEEKLY_HIGH = "Very high PR spam frequency";
 export const LABEL_CLOSED_PR_SPAM_BURST = "Closed PR spam burst";
 export const LABEL_CLOSED_PR_SPAM_SCATTER = "Closed PR spam scatter";
+export const LABEL_IMPOSSIBLE_THROUGHPUT = "Impossible throughput";
 
 export const SPAM_SIGNAL_LABELS = new Set([
 	LABEL_STAR_FARM,
@@ -311,4 +340,5 @@ export const SPAM_SIGNAL_LABELS = new Set([
 	LABEL_PR_SPAM_WEEKLY_HIGH,
 	LABEL_CLOSED_PR_SPAM_BURST,
 	LABEL_CLOSED_PR_SPAM_SCATTER,
+	LABEL_IMPOSSIBLE_THROUGHPUT,
 ]);

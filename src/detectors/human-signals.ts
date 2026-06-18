@@ -190,3 +190,40 @@ export function detectIdentityCompleteness(
 	], { eventBased: false });
 	return flag ? [flag] : [];
 }
+
+export function detectEstablishedContributorExemption(
+	events: GitHubEvent[],
+	accountName: string,
+): IdentifyFlag[] {
+	const mergedPRRepos = new Set<string>();
+	for (const e of events) {
+		if (e.type !== "PullRequestEvent") continue;
+		const action = e.payload?.action;
+		const isMerged = action === "merged" || (action === "closed" && e.payload?.pull_request?.merged === true);
+		if (!isMerged) continue;
+		if (isExternalEvent(e, accountName) && e.repo?.name) mergedPRRepos.add(e.repo.name);
+	}
+	if (mergedPRRepos.size < CONFIG.MERGED_PR_REPOS_HIGH) return [];
+	const repoSpans = new Map<string, { first: number; last: number }>();
+	for (const e of events) {
+		if (!e.repo?.name || !e.created_at || !isExternalEvent(e, accountName)) continue;
+		const ts = dayjs.utc(e.created_at).valueOf();
+		const existing = repoSpans.get(e.repo.name);
+		if (!existing) {
+			repoSpans.set(e.repo.name, { first: ts, last: ts });
+		} else {
+			if (ts < existing.first) existing.first = ts;
+			if (ts > existing.last) existing.last = ts;
+		}
+	}
+	let longSpanCount = 0;
+	for (const { first, last } of repoSpans.values()) {
+		if (msToDays(last - first) >= CONFIG.REPO_SPAN_MIN_DAYS) longSpanCount++;
+	}
+	if (longSpanCount < CONFIG.REPO_SPAN_HIGH_COUNT) return [];
+	return [{
+		label: "Established contributor exemption",
+		points: CONFIG.POINTS_ESTABLISHED_CONTRIBUTOR_EXEMPTION,
+		detail: `${mergedPRRepos.size} merged PRs and ${longSpanCount} long-span repos`,
+	}];
+}

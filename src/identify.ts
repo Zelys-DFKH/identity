@@ -6,6 +6,7 @@ import { CONFIG, KNOWN_BOT_ACCOUNTS, SPAM_SIGNAL_LABELS } from "./config";
 import {
 	detectAccountAge,
 	detectAccountSeniority,
+	detectYoungAccountGrace,
 } from "./detectors/account-age";
 import { detectInhumanActivityPattern } from "./detectors/activity-pattern";
 import {
@@ -18,7 +19,7 @@ import {
 import { detectBranchPRAutomation } from "./detectors/branch-pr-automation";
 import { detectClosedPRSpam } from "./detectors/closed-pr-spam";
 import { detectCommentSpam } from "./detectors/comment-spam";
-import { detectNarrowActivityFocus } from "./detectors/event-diversity";
+import { detectInteractionDominance, detectNarrowActivityFocus, detectPushEventDiversity } from "./detectors/event-diversity";
 import {
 	detectForkActivity,
 	detectForkCombinedActivity,
@@ -26,6 +27,7 @@ import {
 import {
 	detectDayOfWeekVariance,
 	detectDormancyGap,
+	detectEstablishedContributorExemption,
 	detectFollowerCount,
 	detectGistActivity,
 	detectIdentityCompleteness,
@@ -37,6 +39,8 @@ import {
 	detectReviewCommentActivity,
 } from "./detectors/human-signals";
 import { detectExtremeAndDistributedPRSpam } from "./detectors/pr-spam";
+import { detectCircadianAbsence, detectCircadianPresence } from "./detectors/circadian";
+import { detectImpossibleThroughput } from "./detectors/throughput-ceiling";
 import { detectRapidPRSpam } from "./detectors/rapid-pr-spam";
 import { detectRepositoryCreationBurst } from "./detectors/repository-creation";
 import { detectYoungAccountActivity } from "./detectors/young-account";
@@ -109,12 +113,17 @@ export function identify({
 
 	// Bot detection signals
 	flags.push(...detectAccountAge(accountAge));
+	flags.push(...detectYoungAccountGrace(accountAge, filteredEvents));
 	flags.push(
 		...detectZeroReposActivity(reposCount, foreignEvents, filteredEvents),
 	);
 	flags.push(...detectRepositoryCreationBurst(filteredEvents));
 	flags.push(...detectInhumanActivityPattern(filteredEvents));
+	flags.push(...detectImpossibleThroughput(filteredEvents));
+	flags.push(...detectCircadianAbsence(filteredEvents));
 	flags.push(...detectNarrowActivityFocus(filteredEvents));
+	flags.push(...detectPushEventDiversity(filteredEvents, accountName));
+	flags.push(...detectInteractionDominance(filteredEvents));
 	flags.push(...detectCommentSpam(filteredEvents));
 	flags.push(...detectBranchPRAutomation(filteredEvents, accountAge));
 	flags.push(...detectRapidPRSpam(filteredEvents, accountAge));
@@ -152,6 +161,8 @@ export function identify({
 	flags.push(...detectPRIterationCycles(filteredEvents, accountName));
 	flags.push(...detectLongSpanEngagement(filteredEvents, accountName));
 	flags.push(...detectDayOfWeekVariance(filteredEvents));
+	flags.push(...detectCircadianPresence(filteredEvents));
+	flags.push(...detectEstablishedContributorExemption(filteredEvents, accountName));
 
 	const filteredCommits = commits.filter(
 		(commit) =>
