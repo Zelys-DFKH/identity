@@ -5,7 +5,7 @@ import {
 	LABEL_PR_COMMENT_SPAM,
 } from "../config";
 import type { GitHubEvent, IdentifyFlag } from "../types";
-import { filterByType, findDensestBurst, sortByDate } from "../utils";
+import { filterByType, findDensestBurst } from "../utils";
 
 function checkSpray(
 	events: GitHubEvent[],
