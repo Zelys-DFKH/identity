@@ -28,8 +28,7 @@ export function detectStarConcentration(events: GitHubEvent[]): IdentifyFlag[] {
 		});
 	}
 
-	// Sliding window: max watches in any 24-hour span
-	const windowMs = 24 * 60 * 60 * 1000;
+	const windowMs = 24 * 60 * 60 * 1000; // sliding window: max watches in any 24-hour span
 	const watchTs = watchEvents
 		.map((e) => e.created_at)
 		.filter((t): t is string => !!t)
@@ -65,8 +64,7 @@ export function detectEventMonoculture(events: GitHubEvent[]): IdentifyFlag[] {
 		if (e.type) typeCounts.set(e.type, (typeCounts.get(e.type) ?? 0) + 1);
 	}
 
-	// Single-type interaction accounts must not be skipped (detectNarrowActivityFocus exempts them)
-	const INTERACTION_TYPES = new Set([
+	const INTERACTION_TYPES = new Set([ // single-type interaction accounts must not be skipped
 		"IssueCommentEvent",
 		"PullRequestReviewEvent",
 		"PullRequestReviewCommentEvent",
@@ -134,10 +132,7 @@ export function detectIssueBurst(
 
 	if (issueOpenEvents.length < CONFIG.ISSUE_BURST_COUNT_MIN) return flags;
 
-	// Drive-by pattern: issues with no external code contribution.
-	// Own-repo pushes don't count — someone can push to their own repos
-	// while still spamming issues across many external repos.
-	const hasExternalPush = events.some((e) => e.type === "PushEvent" && isExternalEvent(e, accountName));
+	const hasExternalPush = events.some((e) => e.type === "PushEvent" && isExternalEvent(e, accountName)); // drive-by: issues with no code contribution (own-repo pushes don't count)
 	if (hasExternalPush) return flags;
 
 	const burst = findDensestBurst(

@@ -8,8 +8,7 @@ export function detectBranchPRAutomation(
 ): IdentifyFlag[] {
 	const flags: IdentifyFlag[] = [];
 
-	// Detects repeated branch→PR temporal correlations (automated CI/CD workflow: strong automation indicator)
-	const isEstablished = accountAge >= CONFIG.AGE_ESTABLISHED_ACCOUNT;
+	const isEstablished = accountAge >= CONFIG.AGE_ESTABLISHED_ACCOUNT; // repeated branch→PR correlations detect automated CI/CD workflows
 	const branchPRMinPairs = isEstablished
 		? CONFIG.BRANCH_PR_PATTERN_MIN_PAIRS_ESTABLISHED
 		: CONFIG.BRANCH_PR_PATTERN_MIN_PAIRS;

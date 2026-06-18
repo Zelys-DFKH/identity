@@ -39,22 +39,18 @@ export function detectClosedPRSpam(
 			? `${timeSpanDays}d`
 			: `${Math.ceil(timeSpanMinutes / 60)}h`;
 
-	// Find burst days (group by day and count PRs, then identify significant spikes)
-	// Use UTC normalization to ensure timezone-independent day boundaries
-	const prsByDay = new Map<string, number>();
+	const prsByDay = new Map<string, number>(); // burst days grouped by day; UTC-normalized for timezone-independent boundaries
 	closedPREvents.forEach((e) => {
 		const day = dayjs.utc(e.created_at).format("YYYY-MM-DD");
 		prsByDay.set(day, (prsByDay.get(day) || 0) + 1);
 	});
 
-	// Identify all days with significant activity (>= 10 PRs threshold)
-	const burstDays = Array.from(prsByDay.entries())
+	const burstDays = Array.from(prsByDay.entries()) // days with >= 10 PRs (significant activity)
 		.filter(([_, count]) => count >= 10)
 		.sort((a, b) => b[1] - a[1])
 		.map(([_, count]) => count);
 
-	// Format burst details for human-readable output
-	let burstStr = "";
+	let burstStr = ""; // human-readable burst details
 	if (burstDays.length > 0) {
 		if (burstDays.length === 1) {
 			burstStr = `, with a spike of ${burstDays[0]} rejections on one day`;
@@ -66,19 +62,15 @@ export function detectClosedPRSpam(
 		}
 	}
 
-	// Determine severity based on volume of closed PRs
-	let points: number = CONFIG.POINTS_CLOSED_PR_SPAM; // base: 5-24 PRs
+	let points: number = CONFIG.POINTS_CLOSED_PR_SPAM; // severity based on closed PR volume (base: 5-24 PRs)
 	if (closedPREvents.length >= 100) {
 		points = CONFIG.POINTS_CLOSED_PR_SPAM_EXTREME; // 100+ PRs = extreme spam
 	} else if (closedPREvents.length >= 25) {
 		points = CONFIG.POINTS_CLOSED_PR_SPAM_HIGH; // 25-99 PRs = high volume spam
 	}
 
-	// Check spam burst: PR density distinguishes bursts from normal scattered activity
-	const prDensity =
-		fractionalDays > 0
-			? closedPREvents.length / fractionalDays
-			: closedPREvents.length;
+	const prDensity = // PR density distinguishes bursts from scattered activity
+		fractionalDays > 0 ? closedPREvents.length / fractionalDays : closedPREvents.length;
 	const hasSignificantBurst = burstDays.length > 0; // at least one day with 10+ rejections
 	const enoughPRsForSpread = closedPREvents.length >= 25; // if 25+ PRs, even if scattered, it's suspicious
 	const highDensity = prDensity >= 0.5; // at least 1 PR every 2 days or more frequent

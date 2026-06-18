@@ -39,8 +39,7 @@ export function detectForkActivity(events: GitHubEvent[]): IdentifyFlag[] {
 
 	if (spike) flags.push(spike);
 
-	// Fork rate metric — only when no spike already flagged, and activity spans 3+ days
-	if (forkTimestamps.length > 0 && !spike) {
+	if (forkTimestamps.length > 0 && !spike) { // fork rate metric: activity spans 3+ days only if no spike
 		const oldestFork = forkTimestamps[0];
 		const newestFork = forkTimestamps[forkTimestamps.length - 1];
 
@@ -59,8 +58,7 @@ export function detectForkActivity(events: GitHubEvent[]): IdentifyFlag[] {
 		}
 	}
 
-	// Consecutive days of forking — only flag if no concentrated spike already caught it
-	const forkDays = new Set<string>();
+	const forkDays = new Set<string>(); // consecutive forking days; only flag if no spike already caught
 	forkEvents.forEach((e) => {
 		forkDays.add(dayjs.utc(e.created_at).format("YYYY-MM-DD"));
 	});
@@ -141,8 +139,7 @@ export function detectForkCombinedActivity(
 		const earliestBranch = dayjs.min(branchTimestamps);
 		const earliestPR = dayjs.min(prTimestamps);
 
-		// Relaxed ratio check (2.0x tolerance) to account for incomplete event history
-		const isChainingEvident =
+		const isChainingEvident = // relaxed ratio check (2.0x tolerance) for incomplete event history
 			latestFork &&
 			earliestBranch &&
 			earliestPR &&
