@@ -27,6 +27,7 @@ function longestQuietBlock(hist: number[], threshold: number): number {
 	return Math.min(maxLen, 24);
 }
 
+// people sleep; a real account should go quiet somewhere in the 24-hour clock; no quiet window at all is a strong sign something automated is running it
 export function detectCircadianAbsence(events: GitHubEvent[]): IdentifyFlag[] {
 	if (events.length < CONFIG.CIRCADIAN_MIN_EVENTS) return [];
 	const hist = buildHourHistogram(events);
@@ -40,6 +41,7 @@ export function detectCircadianAbsence(events: GitHubEvent[]): IdentifyFlag[] {
 	}];
 }
 
+// the flip side: a consistent rest window showing up across many days is a sleep schedule, not a suspicious pattern — credits that as a positive signal
 export function detectCircadianPresence(events: GitHubEvent[]): IdentifyFlag[] {
 	if (events.length < CONFIG.CIRCADIAN_MIN_EVENTS) return [];
 	const distinctDays = new Set(

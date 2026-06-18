@@ -7,6 +7,7 @@ const WRITE_TYPES = new Set([
 	"IssuesEvent", "ReleaseEvent",
 ]);
 
+// 150+ write events in a 2-hour window is physically beyond what a person can do — flags machine-level pace regardless of event type
 export function detectImpossibleThroughput(events: GitHubEvent[]): IdentifyFlag[] {
 	const writeEvents = events
 		.filter((e) => e.type && WRITE_TYPES.has(e.type) && e.created_at)

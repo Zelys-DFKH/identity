@@ -16,6 +16,7 @@ export function detectAccountAge(accountAge: number): IdentifyFlag[] {
 	return [];
 }
 
+// new accounts that already show uneven timing — skipped days, a gap where they stepped away — get some grace; bots don't take vacations or have slow Mondays
 export function detectYoungAccountGrace(
 	accountAge: number,
 	events: GitHubEvent[],

@@ -191,6 +191,7 @@ export function detectIdentityCompleteness(
 	return flag ? [flag] : [];
 }
 
+// credits accounts with a track record of merged external PRs across many repos — real contributors shouldn't be penalized for being prolific
 export function detectEstablishedContributorExemption(
 	events: GitHubEvent[],
 	accountName: string,

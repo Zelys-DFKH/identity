@@ -51,6 +51,7 @@ export function detectNarrowActivityFocus(
 	return flags;
 }
 
+// credits developers pushing to repos under many different org owners — that kind of spread isn't a bot pattern
 export function detectPushEventDiversity(
 	events: GitHubEvent[],
 	accountName: string,
@@ -69,6 +70,7 @@ export function detectPushEventDiversity(
 	}];
 }
 
+// credits dedicated reviewers whose GitHub presence is mostly comments and reviews across multiple repos — that's a real contributor role, not a suspicious one
 export function detectInteractionDominance(events: GitHubEvent[]): IdentifyFlag[] {
 	if (events.length < CONFIG.INTERACTION_MIN_EVENTS) return [];
 	const interactionTypes = new Set(["IssueCommentEvent", "PullRequestReviewEvent", "PullRequestReviewCommentEvent"]);
