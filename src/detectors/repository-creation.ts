@@ -1,46 +1,22 @@
 import dayjs from "dayjs";
 import { CONFIG } from "../config";
 import type { GitHubEvent, IdentifyFlag } from "../types";
-import { sortByDate } from "../utils";
+import { sortByDate, findMaxEventsInWindow } from "../utils";
 
 export function detectRepositoryCreationBurst(
 	events: GitHubEvent[],
 ): IdentifyFlag[] {
 	const flags: IdentifyFlag[] = [];
+	if (events.length < CONFIG.MIN_EVENTS_FOR_ANALYSIS) return flags;
 
-	if (events.length < CONFIG.MIN_EVENTS_FOR_ANALYSIS) {
-		return flags;
-	}
-
-	// Filter CreateEvent to only actual repository creations (not branch/tag creation)
-	const createEvents = events.filter((e) => {
-		return e.type === "CreateEvent" && e.payload?.ref_type === "repository";
-	});
-
-	// Rapid repo creation burst (real repository creation clustering)
+	const createEvents = events.filter((e) =>
+		e.type === "CreateEvent" && e.payload?.ref_type === "repository",
+	);
 	if (createEvents.length >= CONFIG.CREATE_EVENTS_MIN) {
 		const createTimestamps = sortByDate(createEvents
 			.map((e) => ({ time: dayjs(e.created_at) })))
 			.map((item) => item.time);
-
-		// Check for repo creation clustering (multiple repos in short time window)
-		let maxCreatesInWindow = 0;
-		let windowStartIdx = 0;
-
-		for (let endIdx = 0; endIdx < createTimestamps.length; endIdx++) {
-			const windowEnd = createTimestamps[endIdx];
-
-			// Slide window to include only events within 24 hours
-			while (
-				windowEnd &&
-				windowEnd.diff(createTimestamps[windowStartIdx], "hour", true) > 24
-			) {
-				windowStartIdx++;
-			}
-
-			const createsInWindow = endIdx - windowStartIdx + 1;
-			maxCreatesInWindow = Math.max(maxCreatesInWindow, createsInWindow);
-		}
+		const maxCreatesInWindow = findMaxEventsInWindow(createTimestamps, 24);
 
 		if (maxCreatesInWindow >= CONFIG.CREATE_BURST_EXTREME) {
 			flags.push({

@@ -28,17 +28,12 @@ export function detectClosedPRSpam(
 			.filter((name) => name !== undefined),
 	);
 
-	// Calculate overall time span of closed PR activity
 	const closedPRTimestamps = closedPREvents.map((e) => dayjs(e.created_at));
-	const earliestClosed = closedPRTimestamps.reduce((min, ts) =>
-		ts.isBefore(min) ? ts : min,
-	);
-	const latestClosed = closedPRTimestamps.reduce((max, ts) =>
-		ts.isAfter(max) ? ts : max,
-	);
-	const timeSpanMinutes = latestClosed.diff(earliestClosed, "minute");
-	const timeSpanDays = latestClosed.diff(earliestClosed, "day");
-	const fractionalDays = latestClosed.diff(earliestClosed, "day", true);
+	const earliest = dayjs.min(...closedPRTimestamps);
+	const latest = dayjs.max(...closedPRTimestamps);
+	const timeSpanMinutes = latest.diff(earliest, "minute");
+	const timeSpanDays = latest.diff(earliest, "day");
+	const fractionalDays = latest.diff(earliest, "day", true);
 	const timeRangeStr =
 		timeSpanDays > 0
 			? `${timeSpanDays}d`

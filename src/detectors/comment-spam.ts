@@ -1,6 +1,6 @@
 import dayjs from "dayjs";
 import { CONFIG, LABEL_ISSUE_COMMENT_SPAM, LABEL_PR_COMMENT_SPAM } from "../config";
-import { findDensestBurst, sortByDate } from "../utils";
+import { findDensestBurst, sortByDate, filterByType } from "../utils";
 import type { GitHubEvent, IdentifyFlag } from "../types";
 
 function checkSpray(
@@ -33,7 +33,7 @@ export function detectCommentSpam(events: GitHubEvent[]): IdentifyFlag[] {
 	if (events.length < CONFIG.MIN_EVENTS_FOR_ANALYSIS) return [];
 	return [
 		...checkSpray(
-			events.filter((e) => e.type === "IssueCommentEvent"),
+			filterByType(events, "IssueCommentEvent"),
 			(e) => e.repo?.name,
 			CONFIG.ISSUE_COMMENT_SPAM_WINDOW_MINUTES,
 			CONFIG.ISSUE_COMMENT_MIN_FOR_SPRAY,
@@ -44,7 +44,7 @@ export function detectCommentSpam(events: GitHubEvent[]): IdentifyFlag[] {
 			(n) => `to ${n} different repos`,
 		),
 		...checkSpray(
-			events.filter((e) => e.type === "PullRequestReviewCommentEvent"),
+			filterByType(events, "PullRequestReviewCommentEvent"),
 			(e) => {
 				const repoName = e.repo?.name;
 				const prNumber = e.payload?.pull_request?.number;

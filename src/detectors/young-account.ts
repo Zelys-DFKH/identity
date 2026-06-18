@@ -2,7 +2,7 @@ import dayjs from "dayjs";
 import minMax from "dayjs/plugin/minMax";
 import { CONFIG } from "../config";
 import type { GitHubEvent, IdentifyFlag } from "../types";
-import { calculateNormalizedShannonsEntropy, getRepoOwner, getRepoOwnerFromName, isOpenedPR, sortByDate } from "../utils";
+import { calculateNormalizedShannonsEntropy, getRepoOwner, getRepoOwnerFromName, isOpenedPR, sortByDate, filterByType } from "../utils";
 
 dayjs.extend(minMax);
 
@@ -20,8 +20,7 @@ export function detectYoungAccountActivity(
 
 	const userLogin = accountName.toLowerCase();
 
-	// Commit burst analysis
-	const commitEvents = events.filter((e) => e.type === "PushEvent");
+	const commitEvents = filterByType(events, "PushEvent");
 
 	if (commitEvents.length >= CONFIG.MIN_EVENTS_FOR_ANALYSIS) {
 		const timestamps = sortByDate(commitEvents

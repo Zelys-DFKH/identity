@@ -2,7 +2,7 @@ import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
 import { CONFIG, LABEL_ISSUE_BURST, LABEL_STAR_BURST, LABEL_STAR_FARM } from "../config";
 import type { GitHubEvent, IdentifyFlag, IdentifyProfile } from "../types";
-import { calculateNormalizedShannonsEntropy, findDensestBurst, isExternalEvent } from "../utils";
+import { calculateNormalizedShannonsEntropy, findDensestBurst, isExternalEvent, filterByType } from "../utils";
 
 dayjs.extend(utc);
 
@@ -10,7 +10,7 @@ export function detectStarConcentration(events: GitHubEvent[]): IdentifyFlag[] {
 	const flags: IdentifyFlag[] = [];
 	if (events.length === 0) return flags;
 
-	const watchEvents = events.filter((e) => e.type === "WatchEvent");
+	const watchEvents = filterByType(events, "WatchEvent");
 	const pushAndPRCount = events.filter(
 		(e) => e.type === "PushEvent" || e.type === "PullRequestEvent",
 	).length;
@@ -164,9 +164,7 @@ export function detectConsumerNoReciprocity(
 ): IdentifyFlag[] {
 	const flags: IdentifyFlag[] = [];
 
-	const consumerCount = events.filter(
-		(e) => e.type === "WatchEvent" || e.type === "ForkEvent",
-	).length;
+	const consumerCount = events.filter((e) => e.type === "WatchEvent" || e.type === "ForkEvent").length;
 
 	if (consumerCount < CONFIG.CONSUMER_ONLY_EXTERNAL_MIN) return flags;
 

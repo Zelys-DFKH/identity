@@ -3,7 +3,7 @@ import minMax from "dayjs/plugin/minMax";
 import utc from "dayjs/plugin/utc";
 import { CONFIG } from "../config";
 import type { GitHubEvent, IdentifyFlag } from "../types";
-import { isOpenedPR, sortByDate } from "../utils";
+import { isOpenedPR, sortByDate, filterByType, findMaxEventsInWindow } from "../utils";
 
 dayjs.extend(utc);
 dayjs.extend(minMax);
@@ -21,35 +21,15 @@ const FORK_SPIKE_TIERS: ForkTier[] = [
 
 export function detectForkActivity(events: GitHubEvent[]): IdentifyFlag[] {
 	const flags: IdentifyFlag[] = [];
+	const forkEvents = filterByType(events, "ForkEvent");
+	if (forkEvents.length < CONFIG.FORKS_HIGH) return flags;
 
-	// Detects time-based fork spikes (8+ in 24h is bot behavior regardless of age)
-	const forkEvents = events.filter((e) => e.type === "ForkEvent");
-
-	if (forkEvents.length < CONFIG.FORKS_HIGH) {
-		return flags;
-	}
-
-	const forkTimestamps = sortByDate(forkEvents
-		.map((e) => ({ time: dayjs(e.created_at) })))
+	const forkTimestamps = sortByDate(forkEvents.map((e) => ({ time: dayjs(e.created_at) })))
 		.map((item) => item.time);
-
-	const findMaxForksInWindow = (hours: number): number => {
-		let maxForks = 0;
-		let windowStartIdx = 0;
-		for (let windowEndIdx = 0; windowEndIdx < forkTimestamps.length; windowEndIdx++) {
-			const windowEnd = forkTimestamps[windowEndIdx];
-			while (windowEnd && windowEnd.diff(forkTimestamps[windowStartIdx], "hour", true) > hours) {
-				windowStartIdx++;
-			}
-			maxForks = Math.max(maxForks, windowEndIdx - windowStartIdx + 1);
-		}
-		return maxForks;
-	};
-
 	const maxByWindow = new Map([
-		[24, findMaxForksInWindow(24)],
-		[48, findMaxForksInWindow(48)],
-		[72, findMaxForksInWindow(72)],
+		[24, findMaxEventsInWindow(forkTimestamps, 24)],
+		[48, findMaxEventsInWindow(forkTimestamps, 48)],
+		[72, findMaxEventsInWindow(forkTimestamps, 72)],
 	]);
 
 	const tier = FORK_SPIKE_TIERS.find(({ window, threshold }) => (maxByWindow.get(window) ?? 0) >= threshold);
@@ -114,17 +94,14 @@ export function detectForkActivity(events: GitHubEvent[]): IdentifyFlag[] {
 		}
 	}
 
-	// Fork repo diversity — skip if spike detection already covered the attack
-	const forkedRepos = new Set<string>(
+	const forkedRepos = new Set(
 		forkEvents.map((e) => e.repo?.name).filter((name) => name !== undefined),
 	);
 
 	if (forkedRepos.size >= CONFIG.FORK_REPO_DIVERSITY_HIGH && !spike) {
 		let timeSpanDetail = "";
 		if (forkTimestamps.length > 1) {
-			const earliestFork = forkTimestamps[0];
-			const latestFork = forkTimestamps[forkTimestamps.length - 1];
-			const spanDays = latestFork.diff(earliestFork, "day");
+			const spanDays = forkTimestamps[forkTimestamps.length - 1].diff(forkTimestamps[0], "day");
 			timeSpanDetail = spanDays > 0 ? ` over ${spanDays} days` : " in a short timeframe";
 		}
 		flags.push({
@@ -142,32 +119,19 @@ export function detectForkCombinedActivity(
 	events: GitHubEvent[],
 ): IdentifyFlag[] {
 	const flags: IdentifyFlag[] = [];
-
-	// Fork + coordinated activity combo (forks + branches + PRs = chained automation)
-	// Verify actual chaining: branches in forked repos, PRs targeting forked repos, temporal order
-	const forkEvents = events.filter((e) => e.type === "ForkEvent");
-
-	if (
-		forkEvents.length < CONFIG.FORK_COMBINED_ACTIVITY_MIN ||
-		events.length < CONFIG.MIN_EVENTS_FOR_ANALYSIS
-	) {
-		return flags;
-	}
+	const forkEvents = filterByType(events, "ForkEvent");
+	if (forkEvents.length < CONFIG.FORK_COMBINED_ACTIVITY_MIN ||
+		events.length < CONFIG.MIN_EVENTS_FOR_ANALYSIS) return flags;
 
 	const forkedRepoNames = new Set(
 		forkEvents.map((e) => e.repo?.name).filter((name) => name !== undefined),
 	);
 
-	const branchCreateEvents = events.filter(
-		(e) => e.type === "CreateEvent" && e.payload?.ref_type === "branch",
-	);
-	const branchesInForkedRepos = branchCreateEvents.filter((e) =>
-		forkedRepoNames.has(e.repo?.name || ""),
-	);
-
-	const prsInForkedRepos = events.filter(isOpenedPR).filter((e) =>
-		forkedRepoNames.has(e.repo?.name || ""),
-	);
+	const branchesInForkedRepos = events
+		.filter((e) => e.type === "CreateEvent" && e.payload?.ref_type === "branch" &&
+			forkedRepoNames.has(e.repo?.name || ""));
+	const prsInForkedRepos = events
+		.filter((e) => isOpenedPR(e) && forkedRepoNames.has(e.repo?.name || ""));
 
 	if (
 		branchesInForkedRepos.length >= CONFIG.FORK_COMBINED_BRANCHES &&

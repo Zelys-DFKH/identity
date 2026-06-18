@@ -2,7 +2,7 @@ import dayjs from "dayjs";
 import minMax from "dayjs/plugin/minMax";
 import { CONFIG, LABEL_DISTRIBUTED_PR_SPAM, LABEL_PR_SPAM_DAILY, LABEL_PR_SPAM_WEEKLY, LABEL_PR_SPAM_WEEKLY_HIGH } from "../config";
 import type { GitHubEvent, IdentifyFlag } from "../types";
-import { isOpenedPR, sortByDate } from "../utils";
+import { isOpenedPR, sortByDate, filterByType } from "../utils";
 
 dayjs.extend(minMax);
 

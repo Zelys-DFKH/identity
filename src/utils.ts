@@ -21,6 +21,11 @@ export function isClosedPR(e: GitHubEvent | undefined | null): boolean {
 	return e?.type === "PullRequestEvent" && e?.payload?.action === "closed";
 }
 
+/** Filter events by type. */
+export function filterByType(events: GitHubEvent[], type: string): GitHubEvent[] {
+	return events.filter((e) => e.type === type);
+}
+
 export function isExternalEvent(e: GitHubEvent | undefined | null, accountName: string): boolean {
 	const owner = getRepoOwner(e);
 	return !!owner && owner !== accountName.toLowerCase();
@@ -92,6 +97,21 @@ export function daysBetween(msA: number, msB: number): number {
 	return msToDays(Math.abs(msA - msB));
 }
 
+/** Find max count of events in any window of given hours. */
+export function findMaxEventsInWindow(
+	timestamps: ReturnType<typeof dayjs>[],
+	windowHours: number,
+): number {
+	if (timestamps.length === 0) return 0;
+	let maxEvents = 0, windowStartIdx = 0;
+	for (let windowEndIdx = 0; windowEndIdx < timestamps.length; windowEndIdx++) {
+		const windowEnd = timestamps[windowEndIdx];
+		while (windowEnd && windowEnd.diff(timestamps[windowStartIdx], "hour", true) > windowHours) windowStartIdx++;
+		maxEvents = Math.max(maxEvents, windowEndIdx - windowStartIdx + 1);
+	}
+	return maxEvents;
+}
+
 /** Group items by a key function, mapping to arrays of {event, time}. */
 export function groupByKey<T extends { created_at?: string | null }>(
 	events: T[],
@@ -120,43 +140,25 @@ export function findDensestBurst<T extends { created_at?: string | null }>(
 	extractKey: (item: T) => string | undefined,
 	windowMinutes: number,
 ): { maxKeyCount: number; startIdx: number; endIdx: number } {
-	if (events.length === 0) {
-		return { maxKeyCount: 0, startIdx: 0, endIdx: 0 };
-	}
-
-	const timestamped = events
-		.map((e) => ({ event: e, time: dayjs(e.created_at) }))
+	if (events.length === 0) return { maxKeyCount: 0, startIdx: 0, endIdx: 0 };
+	const timestamped = events.map((e) => ({ event: e, time: dayjs(e.created_at) }))
 		.sort((a, b) => a.time.valueOf() - b.time.valueOf());
 
-	let maxKeyCount = 0;
-	let maxStartIdx = 0;
-	let maxEndIdx = 0;
-	let windowStartIdx = 0;
-
+	let maxKeyCount = 0, maxStartIdx = 0, maxEndIdx = 0, windowStartIdx = 0;
 	for (let windowEndIdx = 0; windowEndIdx < timestamped.length; windowEndIdx++) {
 		const windowEnd = timestamped[windowEndIdx]?.time;
-
-		while (
-			timestamped[windowStartIdx] &&
-			windowEnd &&
-			windowEnd.diff(timestamped[windowStartIdx].time, "minute", true) > windowMinutes
-		) {
-			windowStartIdx++;
-		}
-
+		while (timestamped[windowStartIdx] && windowEnd &&
+			windowEnd.diff(timestamped[windowStartIdx].time, "minute", true) > windowMinutes) windowStartIdx++;
 		const keysInWindow = new Set(
-			timestamped
-				.slice(windowStartIdx, windowEndIdx + 1)
+			timestamped.slice(windowStartIdx, windowEndIdx + 1)
 				.map((item) => extractKey(item.event))
 				.filter((key) => key !== undefined),
 		);
-
 		if (keysInWindow.size > maxKeyCount) {
 			maxKeyCount = keysInWindow.size;
 			maxStartIdx = windowStartIdx;
 			maxEndIdx = windowEndIdx;
 		}
 	}
-
 	return { maxKeyCount, startIdx: maxStartIdx, endIdx: maxEndIdx };
 }
