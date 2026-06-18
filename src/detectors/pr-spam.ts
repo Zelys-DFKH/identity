@@ -72,9 +72,9 @@ export function detectExtremeAndDistributedPRSpam(
 			);
 
 			if (prTargetRepos.size >= CONFIG.REPOS_SPAM_SPREAD) {
-				const prTimestamps = allPREvents.map((e) => dayjs(e.created_at)).sort((a, b) => a.valueOf() - b.valueOf());
-				const earliestPR = prTimestamps[0];
-				const latestPR = prTimestamps[prTimestamps.length - 1];
+				const sortedPRTimestamps = prTimestamps.slice().sort((a, b) => a.valueOf() - b.valueOf());
+				const earliestPR = sortedPRTimestamps[0];
+				const latestPR = sortedPRTimestamps[sortedPRTimestamps.length - 1];
 				const timeSpanDays = latestPR
 					? latestPR.diff(earliestPR, "days", true)
 					: 0;

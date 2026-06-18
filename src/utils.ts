@@ -16,24 +16,9 @@ export function isOpenedPR(e: GitHubEvent | undefined | null): boolean {
 	return e?.type === "PullRequestEvent" && e?.payload?.action === "opened";
 }
 
-/** Check if event is a PR closed action. */
-export function isClosedPR(e: GitHubEvent | undefined | null): boolean {
-	return e?.type === "PullRequestEvent" && e?.payload?.action === "closed";
-}
-
 /** Filter events by type. */
 export function filterByType(events: GitHubEvent[], type: string): GitHubEvent[] {
 	return events.filter((e) => e.type === type);
-}
-
-/** Filter branch creation events. */
-export function filterBranchCreates(events: GitHubEvent[]): GitHubEvent[] {
-	return events.filter((e) => e.type === "CreateEvent" && e.payload?.ref_type === "branch");
-}
-
-/** Filter repository creation events. */
-export function filterRepoCreates(events: GitHubEvent[]): GitHubEvent[] {
-	return events.filter((e) => e.type === "CreateEvent" && e.payload?.ref_type === "repository");
 }
 
 /** Select config value based on whether account is established. */

@@ -99,10 +99,10 @@ export function detectYoungAccountActivity(
 	// Inhuman daily coding activity detection using Shannon's entropy
 	// Bots: uniform hour distribution (high entropy) across many hours = suspicious
 	// Humans: concentrated in certain hours (low entropy/predictable patterns)
-	const codingEventTypes = new Set(["PushEvent", "PullRequestEvent"]);
 	const codingEventsWithReviews = events.filter(
 		(e) =>
-			(e.type && codingEventTypes.has(e.type)) ||
+			e.type === "PushEvent" ||
+			e.type === "PullRequestEvent" ||
 			e.type === "PullRequestReviewEvent" ||
 			e.type === "PullRequestReviewCommentEvent",
 	);

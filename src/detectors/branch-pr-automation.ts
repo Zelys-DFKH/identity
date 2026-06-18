@@ -1,6 +1,6 @@
 import { CONFIG } from "../config";
 import type { GitHubEvent, IdentifyFlag } from "../types";
-import { isOpenedPR, groupByKey, matchConsecutivePairsInWindow, toTimestamped, filterBranchCreates, selectByAccountAge } from "../utils";
+import { isOpenedPR, groupByKey, matchConsecutivePairsInWindow, toTimestamped, selectByAccountAge } from "../utils";
 
 export function detectBranchPRAutomation(
 	events: GitHubEvent[],
@@ -11,7 +11,7 @@ export function detectBranchPRAutomation(
 	const branchPRMinPairs = selectByAccountAge(accountAge, CONFIG.AGE_ESTABLISHED_ACCOUNT, CONFIG.BRANCH_PR_PATTERN_MIN_PAIRS_ESTABLISHED, CONFIG.BRANCH_PR_PATTERN_MIN_PAIRS);
 	const branchPRMinRatio = selectByAccountAge(accountAge, CONFIG.AGE_ESTABLISHED_ACCOUNT, CONFIG.BRANCH_PR_PATTERN_RATIO_MIN_ESTABLISHED, CONFIG.BRANCH_PR_PATTERN_RATIO_MIN);
 
-	const branchCreates = filterBranchCreates(events);
+	const branchCreates = events.filter((e) => e.type === "CreateEvent" && e.payload?.ref_type === "branch");
 	const prEvents = events.filter(isOpenedPR);
 
 	if (
