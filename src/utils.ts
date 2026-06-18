@@ -1,6 +1,11 @@
 import dayjs from "dayjs";
 import type { GitHubEvent } from "./types";
 
+/** Convert events to timestamped entries and sort by time. */
+export function toTimestamped<T extends { created_at?: string | null }>(events: T[]): Array<{ event: T; time: ReturnType<typeof dayjs> }> {
+	return events.map((e) => ({ event: e, time: dayjs(e.created_at) })).sort((a, b) => a.time.valueOf() - b.time.valueOf());
+}
+
 /** Extract repo owner from event, handling optional chaining and null values. */
 export function getRepoOwner(e: GitHubEvent | undefined | null): string | undefined {
 	return e?.repo?.name?.split("/")[0]?.toLowerCase();
@@ -107,10 +112,7 @@ export function groupByKey<T extends { created_at?: string | null }>(
 	events: T[],
 	keyFn: (item: T) => string | undefined,
 ): Map<string, Array<{ event: T; time: ReturnType<typeof dayjs> }>> {
-	const timestamped = events
-		.map((e) => ({ event: e, time: dayjs(e.created_at) }))
-		.sort((a, b) => a.time.valueOf() - b.time.valueOf());
-
+	const timestamped = toTimestamped(events);
 	const grouped = new Map<string, typeof timestamped>();
 	for (const entry of timestamped) {
 		const key = keyFn(entry.event);
@@ -131,9 +133,7 @@ export function findDensestBurst<T extends { created_at?: string | null }>(
 	windowMinutes: number,
 ): { maxKeyCount: number; startIdx: number; endIdx: number } {
 	if (events.length === 0) return { maxKeyCount: 0, startIdx: 0, endIdx: 0 };
-	const timestamped = events.map((e) => ({ event: e, time: dayjs(e.created_at) }))
-		.sort((a, b) => a.time.valueOf() - b.time.valueOf());
-
+	const timestamped = toTimestamped(events);
 	let maxKeyCount = 0, maxStartIdx = 0, maxEndIdx = 0, windowStartIdx = 0;
 	for (let windowEndIdx = 0; windowEndIdx < timestamped.length; windowEndIdx++) {
 		const windowEnd = timestamped[windowEndIdx]?.time;
@@ -170,11 +170,8 @@ export function matchConsecutivePairsInWindow<T extends { created_at?: string | 
 	targetEvents: T[],
 	windowSeconds: number,
 ): { matchCount: number; maxTimeDiff: number } {
-	const sourceByTime = sourceEvents.map((e) => ({ event: e, time: dayjs(e.created_at) }))
-		.sort((a, b) => a.time.valueOf() - b.time.valueOf());
-	const targetByTime = targetEvents.map((e) => ({ event: e, time: dayjs(e.created_at) }))
-		.sort((a, b) => a.time.valueOf() - b.time.valueOf());
-
+	const sourceByTime = toTimestamped(sourceEvents);
+	const targetByTime = toTimestamped(targetEvents);
 	let matchCount = 0;
 	let maxTimeDiff = 0;
 	let targetIdx = 0;

@@ -1,7 +1,6 @@
-import dayjs from "dayjs";
 import { CONFIG } from "../config";
 import type { GitHubEvent, IdentifyFlag } from "../types";
-import { isOpenedPR, groupByKey, matchConsecutivePairsInWindow } from "../utils";
+import { isOpenedPR, groupByKey, matchConsecutivePairsInWindow, toTimestamped } from "../utils";
 
 export function detectBranchPRAutomation(
 	events: GitHubEvent[],
@@ -35,8 +34,7 @@ export function detectBranchPRAutomation(
 			let maxObservedTimeDiff = 0;
 			const prIdxByRepo = new Map<string, number>();
 
-			const branchTimes = branchCreates.map((e) => ({ event: e, time: dayjs(e.created_at) }))
-				.sort((a, b) => a.time.valueOf() - b.time.valueOf());
+			const branchTimes = toTimestamped(branchCreates);
 
 			for (const branchEntry of branchTimes) {
 				const repoName = branchEntry.event.repo?.name;
