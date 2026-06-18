@@ -183,7 +183,7 @@ export function matchConsecutivePairsInWindow<T extends { created_at?: string | 
 
 		if (targetIdx < targetByTime.length) {
 			const timeDiffSeconds = targetByTime[targetIdx].time.diff(source.time, "second");
-			if (timeDiffSeconds >= 0 && timeDiffSeconds <= windowSeconds) {
+			if (timeDiffSeconds >= 0 && timeDiffSeconds < windowSeconds) {
 				matchCount++;
 				maxTimeDiff = Math.max(maxTimeDiff, timeDiffSeconds);
 				targetIdx++;

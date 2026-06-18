@@ -68,6 +68,20 @@ describe("detectStarConcentration", () => {
 		const flags = detectStarConcentration(events);
 		expect(flags.find((f) => f.label === "Star burst activity")).toBeUndefined();
 	});
+
+	it("does not include events exactly 24 hours apart in the same window (boundary test)", () => {
+		const base = new Date("2024-01-01T00:00:00Z").getTime();
+		// 10 events at exact 24-hour boundaries
+		const events = Array.from({ length: 10 }, (_, i) => {
+			// First event at 0ms, next at 24h, next at 48h, etc.
+			// This should NOT trigger a burst because no window has 10 events
+			const ts = new Date(base + i * 24 * 60 * 60 * 1000).toISOString();
+			return makeEvent("WatchEvent", `org/repo${i}`, ts);
+		});
+		const flags = detectStarConcentration(events);
+		// With 10 events spaced exactly 24h apart, max in any 24h window should be 1
+		expect(flags.find((f) => f.label === "Star burst activity")).toBeUndefined();
+	});
 });
 
 describe("detectEventMonoculture", () => {

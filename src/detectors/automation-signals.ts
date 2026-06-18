@@ -38,7 +38,7 @@ export function detectStarConcentration(events: GitHubEvent[]): IdentifyFlag[] {
 	let left = 0;
 	let maxInWindow = 0;
 	for (let right = 0; right < watchTs.length; right++) {
-		while (watchTs[right] - watchTs[left] > windowMs) left++;
+		while (watchTs[right] - watchTs[left] >= windowMs) left++;
 		const count = right - left + 1;
 		if (count > maxInWindow) maxInWindow = count;
 	}

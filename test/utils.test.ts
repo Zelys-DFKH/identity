@@ -42,3 +42,38 @@ describe("computeActivityRecencyMultiplier", () => {
 		expect(result).toBe(1);
 	});
 });
+
+import { matchConsecutivePairsInWindow } from "../src/utils";
+
+describe("matchConsecutivePairsInWindow", () => {
+	it("returns 0 matches for empty arrays", () => {
+		const result = matchConsecutivePairsInWindow([], [], 60);
+		expect(result.matchCount).toBe(0);
+		expect(result.maxTimeDiff).toBe(0);
+	});
+
+	it("excludes pairs at exact window boundary (off-by-one boundary test)", () => {
+		const base = new Date("2024-01-01T00:00:00Z").getTime();
+		// Create a source event and a target event exactly 60 seconds apart
+		const source = [{ created_at: new Date(base).toISOString() }];
+		const target = [{ created_at: new Date(base + 60 * 1000).toISOString() }];
+
+		// With windowSeconds = 60, an event exactly 60 seconds away should NOT match
+		// because the window is [0, 60) not [0, 60]
+		const result = matchConsecutivePairsInWindow(source, target, 60);
+		expect(result.matchCount).toBe(0);
+		expect(result.maxTimeDiff).toBe(0);
+	});
+
+	it("includes pairs within window boundary", () => {
+		const base = new Date("2024-01-01T00:00:00Z").getTime();
+		// Create a source event and a target event 59 seconds apart
+		const source = [{ created_at: new Date(base).toISOString() }];
+		const target = [{ created_at: new Date(base + 59 * 1000).toISOString() }];
+
+		// With windowSeconds = 60, an event 59 seconds away SHOULD match
+		const result = matchConsecutivePairsInWindow(source, target, 60);
+		expect(result.matchCount).toBe(1);
+		expect(result.maxTimeDiff).toBe(59);
+	});
+});
