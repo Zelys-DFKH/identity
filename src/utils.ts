@@ -87,11 +87,6 @@ export function msToDays(ms: number): number {
 	return ms / (1000 * 60 * 60 * 24);
 }
 
-/** Calculate days between two timestamps in milliseconds. */
-export function daysBetween(msA: number, msB: number): number {
-	return msToDays(Math.abs(msA - msB));
-}
-
 /** Find max count of events in any window of given hours. */
 export function findMaxEventsInWindow(
 	timestamps: ReturnType<typeof dayjs>[],
