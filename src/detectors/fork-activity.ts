@@ -120,8 +120,7 @@ export function detectForkCombinedActivity(
 ): IdentifyFlag[] {
 	const flags: IdentifyFlag[] = [];
 	const forkEvents = filterByType(events, "ForkEvent");
-	if (forkEvents.length < CONFIG.FORK_COMBINED_ACTIVITY_MIN ||
-		events.length < CONFIG.MIN_EVENTS_FOR_ANALYSIS) return flags;
+	if (forkEvents.length < 12 || events.length < CONFIG.MIN_EVENTS_FOR_ANALYSIS) return flags;
 
 	const forkedRepoNames = new Set(
 		forkEvents.map((e) => e.repo?.name).filter((name) => name !== undefined),
@@ -133,10 +132,7 @@ export function detectForkCombinedActivity(
 	const prsInForkedRepos = events
 		.filter((e) => isOpenedPR(e) && forkedRepoNames.has(e.repo?.name || ""));
 
-	if (
-		branchesInForkedRepos.length >= CONFIG.FORK_COMBINED_BRANCHES &&
-		prsInForkedRepos.length >= CONFIG.FORK_COMBINED_PRS
-	) {
+	if (branchesInForkedRepos.length >= 6 && prsInForkedRepos.length >= 8) {
 		const forkTimestamps = forkEvents.map((e) => dayjs(e.created_at));
 		const branchTimestamps = branchesInForkedRepos.map((e) => dayjs(e.created_at));
 		const prTimestamps = prsInForkedRepos.map((e) => dayjs(e.created_at));

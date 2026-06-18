@@ -11,15 +11,6 @@ export const CONFIG = {
 	POINTS_NEW_ACCOUNT: 20,
 	POINTS_YOUNG_ACCOUNT: 10,
 
-	// Identity penalty
-	POINTS_NO_IDENTITY: 15,
-
-	// Follow ratio thresholds
-	FOLLOW_RATIO_FOLLOWING_MIN: 50, // following > this AND followers < FOLLOW_RATIO_FOLLOWERS_MAX
-	FOLLOW_RATIO_FOLLOWERS_MAX: 5,
-	POINTS_FOLLOW_RATIO: 15,
-	POINTS_ZERO_FOLLOWERS: 10,
-
 	// Minimum events required for activity analysis
 	MIN_EVENTS_FOR_ANALYSIS: 10,
 
@@ -48,12 +39,6 @@ export const CONFIG = {
 	CONSECUTIVE_FORK_DAYS: 6, // >= this days with fork activity = pattern
 	POINTS_CONSECUTIVE_FORK_DAYS: 40,
 
-	// Fork + coordinated activity combo
-	FORK_COMBINED_ACTIVITY_MIN: 12, // >= this forks
-	FORK_COMBINED_BRANCHES: 6, // + >= this branch creations
-	FORK_COMBINED_PRS: 8, // + >= this PRs = coordinated automation
-	POINTS_FORK_COMBINED_ACTIVITY: 60,
-
 	// Fork repository diversity
 	FORK_REPO_DIVERSITY_HIGH: 15, // >= this different repos forked = spread behavior
 	POINTS_FORK_DIVERSITY: 45,
@@ -70,12 +55,6 @@ export const CONFIG = {
 	REPO_SPREAD_HIGH: 20, // >= this = wide spread
 	POINTS_EXTREME_REPO_SPREAD_YOUNG: 30,
 	POINTS_WIDE_REPO_SPREAD_YOUNG: 15,
-
-	// External PR thresholds (time-based to catch rapid spam)
-	PRS_TODAY_EXTREME: 15, // >= this in 24h = PR burst
-	PRS_WEEK_HIGH: 20, // >= this in 7 days = high frequency
-	POINTS_PR_BURST: 20,
-	POINTS_HIGH_PR_FREQUENCY: 15,
 
 	// Extreme PR spam detection (ALL accounts, time-windowed)
 	PRS_DAY_EXTREME: 30, // >= this PRs in 24h = extreme daily spam
@@ -101,10 +80,7 @@ export const CONFIG = {
 	POINTS_PR_ONLY_CONTRIBUTOR: 20,
 
 	// External activity ratio
-	FOREIGN_RATIO_FULL: 1, // 100% external
 	FOREIGN_RATIO_HIGH: 0.95, // 95%+ external
-	PERSONAL_REPOS_NONE: 3, // < this with 100% external = suspicious
-	POINTS_NO_PERSONAL_ACTIVITY: 30,
 	POINTS_EXTERNAL_FOCUS: 20,
 
 	// Zero repos with activity

@@ -1,4 +1,3 @@
-import { CONFIG } from "../config";
 import type { GitHubEvent, IdentifyFlag } from "../types";
 
 export function detectZeroReposActivity(
@@ -6,10 +5,10 @@ export function detectZeroReposActivity(
 	foreignEvents: GitHubEvent[],
 	events: GitHubEvent[],
 ): IdentifyFlag[] {
-	if (reposCount === 0 && foreignEvents.length === events.length && events.length >= CONFIG.ZERO_REPOS_MIN_EVENTS) {
+	if (reposCount === 0 && foreignEvents.length === events.length && events.length >= 20) {
 		return [{
 			label: "Only active on other people's repos",
-			points: CONFIG.POINTS_ZERO_REPOS_ACTIVE + CONFIG.POINTS_NO_PERSONAL_ACTIVITY,
+			points: 50,
 			detail: `No personal repos, all ${events.length} events are on repos they don't own`,
 		}];
 	}
