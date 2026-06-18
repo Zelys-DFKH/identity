@@ -2,12 +2,18 @@ import dayjs from "dayjs";
 import type { GitHubEvent } from "./types";
 
 /** Convert events to timestamped entries and sort by time. */
-export function toTimestamped<T extends { created_at?: string | null }>(events: T[]): Array<{ event: T; time: ReturnType<typeof dayjs> }> {
-	return events.map((e) => ({ event: e, time: dayjs(e.created_at) })).sort((a, b) => a.time.valueOf() - b.time.valueOf());
+export function toTimestamped<T extends { created_at?: string | null }>(
+	events: T[],
+): Array<{ event: T; time: ReturnType<typeof dayjs> }> {
+	return events
+		.map((e) => ({ event: e, time: dayjs(e.created_at) }))
+		.sort((a, b) => a.time.valueOf() - b.time.valueOf());
 }
 
 /** Extract repo owner from event, handling optional chaining and null values. */
-export function getRepoOwner(e: GitHubEvent | undefined | null): string | undefined {
+export function getRepoOwner(
+	e: GitHubEvent | undefined | null,
+): string | undefined {
 	return e?.repo?.name?.split("/")[0]?.toLowerCase();
 }
 
@@ -17,16 +23,27 @@ export function isOpenedPR(e: GitHubEvent | undefined | null): boolean {
 }
 
 /** Filter events by type. */
-export function filterByType(events: GitHubEvent[], type: string): GitHubEvent[] {
+export function filterByType(
+	events: GitHubEvent[],
+	type: string,
+): GitHubEvent[] {
 	return events.filter((e) => e.type === type);
 }
 
 /** Select config value based on whether account is established. */
-export function selectByAccountAge<T>(accountAge: number, threshold: number, ifEstablished: T, ifYoung: T): T {
+export function selectByAccountAge<T>(
+	accountAge: number,
+	threshold: number,
+	ifEstablished: T,
+	ifYoung: T,
+): T {
 	return accountAge >= threshold ? ifEstablished : ifYoung;
 }
 
-export function isExternalEvent(e: GitHubEvent | undefined | null, accountName: string): boolean {
+export function isExternalEvent(
+	e: GitHubEvent | undefined | null,
+	accountName: string,
+): boolean {
 	const owner = getRepoOwner(e);
 	return !!owner && owner !== accountName.toLowerCase();
 }
@@ -99,10 +116,15 @@ export function findMaxEventsInWindow(
 	windowHours: number,
 ): number {
 	if (timestamps.length === 0) return 0;
-	let maxEvents = 0, windowStartIdx = 0;
+	let maxEvents = 0,
+		windowStartIdx = 0;
 	for (let windowEndIdx = 0; windowEndIdx < timestamps.length; windowEndIdx++) {
 		const windowEnd = timestamps[windowEndIdx];
-		while (windowEnd && windowEnd.diff(timestamps[windowStartIdx], "hour", true) > windowHours) windowStartIdx++;
+		while (
+			windowEnd &&
+			windowEnd.diff(timestamps[windowStartIdx], "hour", true) > windowHours
+		)
+			windowStartIdx++;
 		maxEvents = Math.max(maxEvents, windowEndIdx - windowStartIdx + 1);
 	}
 	return maxEvents;
@@ -135,13 +157,26 @@ export function findDensestBurst<T extends { created_at?: string | null }>(
 ): { maxKeyCount: number; startIdx: number; endIdx: number } {
 	if (events.length === 0) return { maxKeyCount: 0, startIdx: 0, endIdx: 0 };
 	const timestamped = toTimestamped(events);
-	let maxKeyCount = 0, maxStartIdx = 0, maxEndIdx = 0, windowStartIdx = 0;
-	for (let windowEndIdx = 0; windowEndIdx < timestamped.length; windowEndIdx++) {
+	let maxKeyCount = 0,
+		maxStartIdx = 0,
+		maxEndIdx = 0,
+		windowStartIdx = 0;
+	for (
+		let windowEndIdx = 0;
+		windowEndIdx < timestamped.length;
+		windowEndIdx++
+	) {
 		const windowEnd = timestamped[windowEndIdx]?.time;
-		while (timestamped[windowStartIdx] && windowEnd &&
-			windowEnd.diff(timestamped[windowStartIdx].time, "minute", true) > windowMinutes) windowStartIdx++;
+		while (
+			timestamped[windowStartIdx] &&
+			windowEnd &&
+			windowEnd.diff(timestamped[windowStartIdx].time, "minute", true) >
+				windowMinutes
+		)
+			windowStartIdx++;
 		const keysInWindow = new Set(
-			timestamped.slice(windowStartIdx, windowEndIdx + 1)
+			timestamped
+				.slice(windowStartIdx, windowEndIdx + 1)
 				.map((item) => extractKey(item.event))
 				.filter((key) => key !== undefined),
 		);
@@ -166,7 +201,9 @@ export function filterByTimeWindow<T extends { created_at?: string | null }>(
 }
 
 /** Match consecutive pairs between sorted time-ordered arrays within time window. Returns match count and max time diff. */
-export function matchConsecutivePairsInWindow<T extends { created_at?: string | null }>(
+export function matchConsecutivePairsInWindow<
+	T extends { created_at?: string | null },
+>(
 	sourceEvents: T[],
 	targetEvents: T[],
 	windowSeconds: number,
@@ -178,12 +215,18 @@ export function matchConsecutivePairsInWindow<T extends { created_at?: string | 
 	let targetIdx = 0;
 
 	for (const source of sourceByTime) {
-		while (targetIdx < targetByTime.length && targetByTime[targetIdx].time.valueOf() < source.time.valueOf()) {
+		while (
+			targetIdx < targetByTime.length &&
+			targetByTime[targetIdx].time.valueOf() < source.time.valueOf()
+		) {
 			targetIdx++;
 		}
 
 		if (targetIdx < targetByTime.length) {
-			const timeDiffSeconds = targetByTime[targetIdx].time.diff(source.time, "second");
+			const timeDiffSeconds = targetByTime[targetIdx].time.diff(
+				source.time,
+				"second",
+			);
 			if (timeDiffSeconds >= 0 && timeDiffSeconds < windowSeconds) {
 				matchCount++;
 				maxTimeDiff = Math.max(maxTimeDiff, timeDiffSeconds);

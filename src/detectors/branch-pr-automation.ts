@@ -1,6 +1,12 @@
 import { CONFIG } from "../config";
 import type { GitHubEvent, IdentifyFlag } from "../types";
-import { isOpenedPR, groupByKey, matchConsecutivePairsInWindow, toTimestamped, selectByAccountAge } from "../utils";
+import {
+	groupByKey,
+	isOpenedPR,
+	matchConsecutivePairsInWindow,
+	selectByAccountAge,
+	toTimestamped,
+} from "../utils";
 
 export function detectBranchPRAutomation(
 	events: GitHubEvent[],
@@ -8,10 +14,22 @@ export function detectBranchPRAutomation(
 ): IdentifyFlag[] {
 	const flags: IdentifyFlag[] = [];
 
-	const branchPRMinPairs = selectByAccountAge(accountAge, CONFIG.AGE_ESTABLISHED_ACCOUNT, CONFIG.BRANCH_PR_PATTERN_MIN_PAIRS_ESTABLISHED, CONFIG.BRANCH_PR_PATTERN_MIN_PAIRS);
-	const branchPRMinRatio = selectByAccountAge(accountAge, CONFIG.AGE_ESTABLISHED_ACCOUNT, CONFIG.BRANCH_PR_PATTERN_RATIO_MIN_ESTABLISHED, CONFIG.BRANCH_PR_PATTERN_RATIO_MIN);
+	const branchPRMinPairs = selectByAccountAge(
+		accountAge,
+		CONFIG.AGE_ESTABLISHED_ACCOUNT,
+		CONFIG.BRANCH_PR_PATTERN_MIN_PAIRS_ESTABLISHED,
+		CONFIG.BRANCH_PR_PATTERN_MIN_PAIRS,
+	);
+	const branchPRMinRatio = selectByAccountAge(
+		accountAge,
+		CONFIG.AGE_ESTABLISHED_ACCOUNT,
+		CONFIG.BRANCH_PR_PATTERN_RATIO_MIN_ESTABLISHED,
+		CONFIG.BRANCH_PR_PATTERN_RATIO_MIN,
+	);
 
-	const branchCreates = events.filter((e) => e.type === "CreateEvent" && e.payload?.ref_type === "branch");
+	const branchCreates = events.filter(
+		(e) => e.type === "CreateEvent" && e.payload?.ref_type === "branch",
+	);
 	const prEvents = events.filter(isOpenedPR);
 
 	if (
@@ -105,7 +123,11 @@ export function detectBranchPRAutomation(
 					});
 
 					if (branchesForProject.length > 0 && prsForProject.length > 0) {
-						const { matchCount, maxTimeDiff } = matchConsecutivePairsInWindow(branchesForProject.map(b => b.event), prsForProject, CONFIG.BRANCH_PR_TIME_WINDOW_SECONDS);
+						const { matchCount, maxTimeDiff } = matchConsecutivePairsInWindow(
+							branchesForProject.map((b) => b.event),
+							prsForProject,
+							CONFIG.BRANCH_PR_TIME_WINDOW_SECONDS,
+						);
 						forkWorkflowMatches += matchCount;
 						forkMaxTimeDiff = Math.max(forkMaxTimeDiff, maxTimeDiff);
 					}

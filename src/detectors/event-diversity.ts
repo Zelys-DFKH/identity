@@ -63,25 +63,43 @@ export function detectPushEventDiversity(
 		if (name) externalOwners.add(name.split("/")[0]);
 	}
 	if (externalOwners.size < CONFIG.PUSH_DIVERSITY_MIN_OWNERS) return [];
-	return [{
-		label: "Push diversity",
-		points: CONFIG.POINTS_PUSH_DIVERSITY,
-		detail: `Pushes to ${externalOwners.size} distinct external repo owners`,
-	}];
+	return [
+		{
+			label: "Push diversity",
+			points: CONFIG.POINTS_PUSH_DIVERSITY,
+			detail: `Pushes to ${externalOwners.size} distinct external repo owners`,
+		},
+	];
 }
 
 // credits dedicated reviewers whose GitHub presence is mostly comments and reviews across multiple repos — that's a real contributor role, not a suspicious one
-export function detectInteractionDominance(events: GitHubEvent[]): IdentifyFlag[] {
+export function detectInteractionDominance(
+	events: GitHubEvent[],
+): IdentifyFlag[] {
 	if (events.length < CONFIG.INTERACTION_MIN_EVENTS) return [];
-	const interactionTypes = new Set(["IssueCommentEvent", "PullRequestReviewEvent", "PullRequestReviewCommentEvent"]);
-	const interactionEvents = events.filter((e) => e.type && interactionTypes.has(e.type));
-	if (interactionEvents.length / events.length < CONFIG.INTERACTION_DOMINANCE_RATIO) return [];
-	const distinctRepos = new Set(interactionEvents.map((e) => e.repo?.name).filter(Boolean)).size;
+	const interactionTypes = new Set([
+		"IssueCommentEvent",
+		"PullRequestReviewEvent",
+		"PullRequestReviewCommentEvent",
+	]);
+	const interactionEvents = events.filter(
+		(e) => e.type && interactionTypes.has(e.type),
+	);
+	if (
+		interactionEvents.length / events.length <
+		CONFIG.INTERACTION_DOMINANCE_RATIO
+	)
+		return [];
+	const distinctRepos = new Set(
+		interactionEvents.map((e) => e.repo?.name).filter(Boolean),
+	).size;
 	if (distinctRepos < CONFIG.INTERACTION_MIN_REPOS) return [];
 	const pct = Math.round((interactionEvents.length / events.length) * 100);
-	return [{
-		label: "Interaction-focused contributor",
-		points: CONFIG.POINTS_INTERACTION_DOMINANCE,
-		detail: `${interactionEvents.length}/${events.length} events (${pct}%) are interactions across ${distinctRepos} repos`,
-	}];
+	return [
+		{
+			label: "Interaction-focused contributor",
+			points: CONFIG.POINTS_INTERACTION_DOMINANCE,
+			detail: `${interactionEvents.length}/${events.length} events (${pct}%) are interactions across ${distinctRepos} repos`,
+		},
+	];
 }

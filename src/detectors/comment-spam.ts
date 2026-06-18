@@ -1,7 +1,11 @@
 import dayjs from "dayjs";
-import { CONFIG, LABEL_ISSUE_COMMENT_SPAM, LABEL_PR_COMMENT_SPAM } from "../config";
-import { findDensestBurst, sortByDate, filterByType } from "../utils";
+import {
+	CONFIG,
+	LABEL_ISSUE_COMMENT_SPAM,
+	LABEL_PR_COMMENT_SPAM,
+} from "../config";
 import type { GitHubEvent, IdentifyFlag } from "../types";
+import { filterByType, findDensestBurst, sortByDate } from "../utils";
 
 function checkSpray(
 	events: GitHubEvent[],
@@ -16,17 +20,21 @@ function checkSpray(
 	const tier = tiers.find(([threshold]) => burst.maxKeyCount >= threshold);
 	if (!tier) return [];
 	const [, label, points] = tier;
-	const timestamps = events.map((e) => dayjs(e.created_at)).sort((a, b) => a.valueOf() - b.valueOf());
+	const timestamps = events
+		.map((e) => dayjs(e.created_at))
+		.sort((a, b) => a.valueOf() - b.valueOf());
 	const start = timestamps[burst.startIdx];
 	const end = timestamps[burst.endIdx];
 	const mins = end && start ? Math.round(end.diff(start, "minute", true)) : 0;
 	const count = burst.endIdx - burst.startIdx + 1;
-	return [{
-		label,
-		points,
-		amplifiable: true,
-		detail: `${count} comments ${targetText(burst.maxKeyCount)} in just ${mins} minute${mins === 1 ? "" : "s"}`,
-	}];
+	return [
+		{
+			label,
+			points,
+			amplifiable: true,
+			detail: `${count} comments ${targetText(burst.maxKeyCount)} in just ${mins} minute${mins === 1 ? "" : "s"}`,
+		},
+	];
 }
 
 export function detectCommentSpam(events: GitHubEvent[]): IdentifyFlag[] {
@@ -38,8 +46,16 @@ export function detectCommentSpam(events: GitHubEvent[]): IdentifyFlag[] {
 			CONFIG.ISSUE_COMMENT_SPAM_WINDOW_MINUTES,
 			CONFIG.ISSUE_COMMENT_MIN_FOR_SPRAY,
 			[
-				[CONFIG.ISSUE_COMMENT_SPRAY_EXTREME, LABEL_ISSUE_COMMENT_SPAM, CONFIG.POINTS_ISSUE_COMMENT_SPRAY_EXTREME],
-				[CONFIG.ISSUE_COMMENT_SPRAY_HIGH, "High comment frequency across repos", CONFIG.POINTS_ISSUE_COMMENT_SPRAY_HIGH],
+				[
+					CONFIG.ISSUE_COMMENT_SPRAY_EXTREME,
+					LABEL_ISSUE_COMMENT_SPAM,
+					CONFIG.POINTS_ISSUE_COMMENT_SPRAY_EXTREME,
+				],
+				[
+					CONFIG.ISSUE_COMMENT_SPRAY_HIGH,
+					"High comment frequency across repos",
+					CONFIG.POINTS_ISSUE_COMMENT_SPRAY_HIGH,
+				],
 			],
 			(n) => `to ${n} different repos`,
 		),
@@ -53,8 +69,16 @@ export function detectCommentSpam(events: GitHubEvent[]): IdentifyFlag[] {
 			CONFIG.PR_COMMENT_SPAM_WINDOW_MINUTES,
 			CONFIG.PR_COMMENT_MIN_FOR_SPRAY,
 			[
-				[CONFIG.PR_COMMENT_SPRAY_EXTREME, LABEL_PR_COMMENT_SPAM, CONFIG.POINTS_PR_COMMENT_SPRAY_EXTREME],
-				[CONFIG.PR_COMMENT_SPRAY_HIGH, "High PR comment frequency", CONFIG.POINTS_PR_COMMENT_SPRAY_HIGH],
+				[
+					CONFIG.PR_COMMENT_SPRAY_EXTREME,
+					LABEL_PR_COMMENT_SPAM,
+					CONFIG.POINTS_PR_COMMENT_SPRAY_EXTREME,
+				],
+				[
+					CONFIG.PR_COMMENT_SPRAY_HIGH,
+					"High PR comment frequency",
+					CONFIG.POINTS_PR_COMMENT_SPRAY_HIGH,
+				],
 			],
 			(n) => `on ${n} different PRs`,
 		),

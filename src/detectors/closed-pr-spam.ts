@@ -1,5 +1,9 @@
 import dayjs from "dayjs";
-import { CONFIG, LABEL_CLOSED_PR_SPAM_BURST, LABEL_CLOSED_PR_SPAM_SCATTER } from "../config";
+import {
+	CONFIG,
+	LABEL_CLOSED_PR_SPAM_BURST,
+	LABEL_CLOSED_PR_SPAM_SCATTER,
+} from "../config";
 import type { GitHubEvent, IdentifyFlag } from "../types";
 import { selectByAccountAge } from "../utils";
 
@@ -9,9 +13,16 @@ export function detectClosedPRSpam(
 ): IdentifyFlag[] {
 	const flags: IdentifyFlag[] = [];
 
-	const minClosedPRs = selectByAccountAge(accountAge, CONFIG.AGE_ESTABLISHED_ACCOUNT, CONFIG.CLOSED_PR_SPAM_MIN_ESTABLISHED, CONFIG.CLOSED_PR_SPAM_MIN);
+	const minClosedPRs = selectByAccountAge(
+		accountAge,
+		CONFIG.AGE_ESTABLISHED_ACCOUNT,
+		CONFIG.CLOSED_PR_SPAM_MIN_ESTABLISHED,
+		CONFIG.CLOSED_PR_SPAM_MIN,
+	);
 
-	const closedPREvents = events.filter((e) => e?.type === "PullRequestEvent" && e?.payload?.action === "closed");
+	const closedPREvents = events.filter(
+		(e) => e?.type === "PullRequestEvent" && e?.payload?.action === "closed",
+	);
 
 	if (closedPREvents.length < minClosedPRs) {
 		return flags;
@@ -27,9 +38,11 @@ export function detectClosedPRSpam(
 	const closedPRTimestamps = closedPREvents.map((e) => dayjs(e.created_at));
 	const earliest = dayjs.min(...closedPRTimestamps);
 	const latest = dayjs.max(...closedPRTimestamps);
-	const timeSpanMinutes = latest && earliest ? latest.diff(earliest, "minute") : 0;
+	const timeSpanMinutes =
+		latest && earliest ? latest.diff(earliest, "minute") : 0;
 	const timeSpanDays = latest && earliest ? latest.diff(earliest, "day") : 0;
-	const fractionalDays = latest && earliest ? latest.diff(earliest, "day", true) : 0;
+	const fractionalDays =
+		latest && earliest ? latest.diff(earliest, "day", true) : 0;
 	const timeRangeStr =
 		timeSpanDays > 0
 			? `${timeSpanDays}d`
@@ -66,7 +79,9 @@ export function detectClosedPRSpam(
 	}
 
 	const prDensity = // PR density distinguishes bursts from scattered activity
-		fractionalDays > 0.01 ? closedPREvents.length / fractionalDays : closedPREvents.length;
+		fractionalDays > 0.01
+			? closedPREvents.length / fractionalDays
+			: closedPREvents.length;
 	const hasSignificantBurst = burstDays.length > 0; // at least one day with 10+ rejections
 	const enoughPRsForSpread = closedPREvents.length >= 25; // if 25+ PRs, even if scattered, it's suspicious
 	const highDensity = prDensity >= 0.5; // at least 1 PR every 2 days or more frequent

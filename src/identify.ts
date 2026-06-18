@@ -17,9 +17,17 @@ import {
 	detectThinProfileBot,
 } from "./detectors/automation-signals";
 import { detectBranchPRAutomation } from "./detectors/branch-pr-automation";
+import {
+	detectCircadianAbsence,
+	detectCircadianPresence,
+} from "./detectors/circadian";
 import { detectClosedPRSpam } from "./detectors/closed-pr-spam";
 import { detectCommentSpam } from "./detectors/comment-spam";
-import { detectInteractionDominance, detectNarrowActivityFocus, detectPushEventDiversity } from "./detectors/event-diversity";
+import {
+	detectInteractionDominance,
+	detectNarrowActivityFocus,
+	detectPushEventDiversity,
+} from "./detectors/event-diversity";
 import {
 	detectForkActivity,
 	detectForkCombinedActivity,
@@ -39,10 +47,9 @@ import {
 	detectReviewCommentActivity,
 } from "./detectors/human-signals";
 import { detectExtremeAndDistributedPRSpam } from "./detectors/pr-spam";
-import { detectCircadianAbsence, detectCircadianPresence } from "./detectors/circadian";
-import { detectImpossibleThroughput } from "./detectors/throughput-ceiling";
 import { detectRapidPRSpam } from "./detectors/rapid-pr-spam";
 import { detectRepositoryCreationBurst } from "./detectors/repository-creation";
+import { detectImpossibleThroughput } from "./detectors/throughput-ceiling";
 import { detectYoungAccountActivity } from "./detectors/young-account";
 import { detectZeroReposActivity } from "./detectors/zero-repos";
 import type {
@@ -63,9 +70,11 @@ function calculateConfidence(
 	const botCount = flags.filter((f) => f.points > 0).length;
 	const humanCount = flags.filter((f) => f.points < 0).length;
 	const corroborating =
-		classification === "organic" ? humanCount
-		: classification === "mixed" ? Math.min(botCount, humanCount)
-		: botCount;
+		classification === "organic"
+			? humanCount
+			: classification === "mixed"
+				? Math.min(botCount, humanCount)
+				: botCount;
 	if (corroborating === 0) return 20;
 	return Math.min(95, 40 + (corroborating - 1) * 23);
 }
@@ -162,7 +171,9 @@ export function identify({
 	flags.push(...detectLongSpanEngagement(filteredEvents, accountName));
 	flags.push(...detectDayOfWeekVariance(filteredEvents));
 	flags.push(...detectCircadianPresence(filteredEvents));
-	flags.push(...detectEstablishedContributorExemption(filteredEvents, accountName));
+	flags.push(
+		...detectEstablishedContributorExemption(filteredEvents, accountName),
+	);
 
 	const filteredCommits = commits.filter(
 		(commit) =>
@@ -204,7 +215,8 @@ export function identify({
 			? Math.round(flag.points * multiplier)
 			: flag.points;
 		// Decay only when effective>0; eventBased:false only matters for positive-point flags
-		if (effective > 0 && flag.eventBased !== false) effective = Math.round(effective * recencyMultiplier);
+		if (effective > 0 && flag.eventBased !== false)
+			effective = Math.round(effective * recencyMultiplier);
 		return total + effective;
 	}, 0);
 

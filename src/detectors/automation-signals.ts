@@ -1,8 +1,18 @@
 import dayjs from "dayjs";
 import utc from "dayjs/plugin/utc";
-import { CONFIG, LABEL_ISSUE_BURST, LABEL_STAR_BURST, LABEL_STAR_FARM } from "../config";
+import {
+	CONFIG,
+	LABEL_ISSUE_BURST,
+	LABEL_STAR_BURST,
+	LABEL_STAR_FARM,
+} from "../config";
 import type { GitHubEvent, IdentifyFlag, IdentifyProfile } from "../types";
-import { calculateNormalizedShannonsEntropy, findDensestBurst, isExternalEvent, filterByType } from "../utils";
+import {
+	calculateNormalizedShannonsEntropy,
+	filterByType,
+	findDensestBurst,
+	isExternalEvent,
+} from "../utils";
 
 dayjs.extend(utc);
 
@@ -64,13 +74,17 @@ export function detectEventMonoculture(events: GitHubEvent[]): IdentifyFlag[] {
 		if (e.type) typeCounts.set(e.type, (typeCounts.get(e.type) ?? 0) + 1);
 	}
 
-	const INTERACTION_TYPES = new Set([ // single-type interaction accounts must not be skipped
+	const INTERACTION_TYPES = new Set([
+		// single-type interaction accounts must not be skipped
 		"IssueCommentEvent",
 		"PullRequestReviewEvent",
 		"PullRequestReviewCommentEvent",
 	]);
 	// size===0 → undefined → "" → not in INTERACTION_TYPES, so return early
-	if (typeCounts.size <= 1 && !INTERACTION_TYPES.has([...typeCounts.keys()][0] ?? ""))
+	if (
+		typeCounts.size <= 1 &&
+		!INTERACTION_TYPES.has([...typeCounts.keys()][0] ?? "")
+	)
 		return flags;
 
 	const counts = Array.from(typeCounts.values());
@@ -126,13 +140,18 @@ export function detectIssueBurst(
 ): IdentifyFlag[] {
 	const flags: IdentifyFlag[] = [];
 
-	const issueOpenEvents = events.filter((e) =>
-		e.type === "IssuesEvent" && e.payload?.action === "opened" && isExternalEvent(e, accountName),
+	const issueOpenEvents = events.filter(
+		(e) =>
+			e.type === "IssuesEvent" &&
+			e.payload?.action === "opened" &&
+			isExternalEvent(e, accountName),
 	);
 
 	if (issueOpenEvents.length < CONFIG.ISSUE_BURST_COUNT_MIN) return flags;
 
-	const hasExternalPush = events.some((e) => e.type === "PushEvent" && isExternalEvent(e, accountName)); // drive-by: issues with no code contribution (own-repo pushes don't count)
+	const hasExternalPush = events.some(
+		(e) => e.type === "PushEvent" && isExternalEvent(e, accountName),
+	); // drive-by: issues with no code contribution (own-repo pushes don't count)
 	if (hasExternalPush) return flags;
 
 	const burst = findDensestBurst(
@@ -159,7 +178,9 @@ export function detectConsumerNoReciprocity(
 ): IdentifyFlag[] {
 	const flags: IdentifyFlag[] = [];
 
-	const consumerCount = events.filter((e) => e.type === "WatchEvent" || e.type === "ForkEvent").length;
+	const consumerCount = events.filter(
+		(e) => e.type === "WatchEvent" || e.type === "ForkEvent",
+	).length;
 
 	if (consumerCount < CONFIG.CONSUMER_ONLY_EXTERNAL_MIN) return flags;
 
@@ -169,8 +190,9 @@ export function detectConsumerNoReciprocity(
 		"PullRequestReviewEvent",
 		"PullRequestReviewCommentEvent",
 	]);
-	const hasExternalContribution = events.some((e) =>
-		CONTRIBUTION_TYPES.has(e.type ?? "") && isExternalEvent(e, accountName),
+	const hasExternalContribution = events.some(
+		(e) =>
+			CONTRIBUTION_TYPES.has(e.type ?? "") && isExternalEvent(e, accountName),
 	);
 
 	if (!hasExternalContribution) {

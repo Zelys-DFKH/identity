@@ -266,7 +266,7 @@ export const CONFIG = {
 	DOW_VARIANCE_CV_MIN: 0.3,
 	POINTS_DOW_VARIANCE: -3,
 
-		// AI commit metadata — amplifier, not a standalone signal
+	// AI commit metadata — amplifier, not a standalone signal
 	// Multiplier applies only to amplifiable:true flags; highest-ratio-first wins.
 	AI_COMMIT_MIN_COMMITS: 5,
 	AI_COMMIT_TIERS: [

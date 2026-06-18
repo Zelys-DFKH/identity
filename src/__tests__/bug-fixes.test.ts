@@ -1,25 +1,45 @@
-import { describe, it, expect } from "vitest";
 import dayjs from "dayjs";
-import { detectClosedPRSpam } from "../detectors/closed-pr-spam";
-import { detectLongSpanEngagement, detectDormancyGap } from "../detectors/human-signals";
-import { detectYoungAccountActivity } from "../detectors/young-account";
+import { describe, expect, it } from "vitest";
 import { detectYoungAccountGrace } from "../detectors/account-age";
-import { computeActivityRecencyMultiplier } from "../utils";
+import { detectClosedPRSpam } from "../detectors/closed-pr-spam";
+import {
+	detectDormancyGap,
+	detectLongSpanEngagement,
+} from "../detectors/human-signals";
+import { detectYoungAccountActivity } from "../detectors/young-account";
 import type { GitHubEvent } from "../types";
+import { computeActivityRecencyMultiplier } from "../utils";
 
 describe("Bug Fix: closed-pr-spam.ts fractionalDays edge case", () => {
 	it("should handle very small fractionalDays without inflating density", () => {
 		const now = new Date();
 		const sameDay = now.toISOString();
 		const events: GitHubEvent[] = [
-			{ type: "PullRequestEvent", payload: { action: "closed" }, repo: { name: "repo1" }, created_at: sameDay },
-			{ type: "PullRequestEvent", payload: { action: "closed" }, repo: { name: "repo2" }, created_at: sameDay },
-			{ type: "PullRequestEvent", payload: { action: "closed" }, repo: { name: "repo3" }, created_at: sameDay },
+			{
+				type: "PullRequestEvent",
+				payload: { action: "closed" },
+				repo: { name: "repo1" },
+				created_at: sameDay,
+			},
+			{
+				type: "PullRequestEvent",
+				payload: { action: "closed" },
+				repo: { name: "repo2" },
+				created_at: sameDay,
+			},
+			{
+				type: "PullRequestEvent",
+				payload: { action: "closed" },
+				repo: { name: "repo3" },
+				created_at: sameDay,
+			},
 		];
 		const flags = detectClosedPRSpam(events, 365);
 		expect(flags).toBeDefined();
 		expect(Array.isArray(flags)).toBe(true);
-		const scatter = flags.find((f) => f.label === "Closed PR spam across repos");
+		const scatter = flags.find(
+			(f) => f.label === "Closed PR spam across repos",
+		);
 		if (scatter) {
 			expect(scatter.detail).toContain("3 PRs");
 		}
@@ -44,10 +64,26 @@ describe("Bug Fix: human-signals.ts detectLongSpanEngagement zero-span edge case
 		const now = dayjs().utc();
 		const dayAgo = now.subtract(121, "day");
 		const events: GitHubEvent[] = [
-			{ type: "PushEvent", repo: { name: "someoneelse/repo1" }, created_at: dayAgo.toISOString() },
-			{ type: "PushEvent", repo: { name: "someoneelse/repo1" }, created_at: now.toISOString() },
-			{ type: "PushEvent", repo: { name: "someoneelse/repo2" }, created_at: dayAgo.toISOString() },
-			{ type: "PushEvent", repo: { name: "someoneelse/repo2" }, created_at: now.toISOString() },
+			{
+				type: "PushEvent",
+				repo: { name: "someoneelse/repo1" },
+				created_at: dayAgo.toISOString(),
+			},
+			{
+				type: "PushEvent",
+				repo: { name: "someoneelse/repo1" },
+				created_at: now.toISOString(),
+			},
+			{
+				type: "PushEvent",
+				repo: { name: "someoneelse/repo2" },
+				created_at: dayAgo.toISOString(),
+			},
+			{
+				type: "PushEvent",
+				repo: { name: "someoneelse/repo2" },
+				created_at: now.toISOString(),
+			},
 		];
 		const flags = detectLongSpanEngagement(events, "myaccount");
 		expect(flags.length).toBeGreaterThan(0);
@@ -107,7 +143,9 @@ describe("Bug Fix: young-account.ts same-day PR span", () => {
 		const flags = detectYoungAccountActivity(events, 0, true, "myaccount");
 		expect(Array.isArray(flags)).toBe(true);
 		if (flags.length > 0) {
-			expect(flags.some((f) => f.points !== undefined && f.points >= 0)).toBe(true);
+			expect(flags.some((f) => f.points !== undefined && f.points >= 0)).toBe(
+				true,
+			);
 		}
 	});
 });
@@ -121,7 +159,10 @@ describe("Feature: detectYoungAccountGrace", () => {
 			events.push({
 				type: "PushEvent",
 				repo: { name: "someoneelse/repo" },
-				created_at: now.subtract(70 - i * 2, "day").add(dayOfWeek, "day").toISOString(),
+				created_at: now
+					.subtract(70 - i * 2, "day")
+					.add(dayOfWeek, "day")
+					.toISOString(),
 			});
 		}
 		for (let i = 10; i < 20; i++) {
@@ -129,7 +170,10 @@ describe("Feature: detectYoungAccountGrace", () => {
 			events.push({
 				type: "PushEvent",
 				repo: { name: "someoneelse/repo" },
-				created_at: now.subtract(10 - (i - 10) * 2, "day").add(dayOfWeek, "day").toISOString(),
+				created_at: now
+					.subtract(10 - (i - 10) * 2, "day")
+					.add(dayOfWeek, "day")
+					.toISOString(),
 			});
 		}
 		const flags = detectYoungAccountGrace(45, events);
@@ -146,7 +190,10 @@ describe("Feature: detectYoungAccountGrace", () => {
 			events.push({
 				type: "PushEvent",
 				repo: { name: "someoneelse/repo" },
-				created_at: now.subtract(25 - i, "day").add(dayOfWeek * 2, "hour").toISOString(),
+				created_at: now
+					.subtract(25 - i, "day")
+					.add(dayOfWeek * 2, "hour")
+					.toISOString(),
 			});
 		}
 		const flags = detectYoungAccountGrace(45, events);
@@ -170,10 +217,16 @@ describe("Feature: detectYoungAccountGrace", () => {
 	});
 });
 
+import {
+	detectCircadianAbsence,
+	detectCircadianPresence,
+} from "../detectors/circadian";
+import {
+	detectInteractionDominance,
+	detectPushEventDiversity,
+} from "../detectors/event-diversity";
 import { detectEstablishedContributorExemption } from "../detectors/human-signals";
-import { detectPushEventDiversity, detectInteractionDominance } from "../detectors/event-diversity";
 import { detectImpossibleThroughput } from "../detectors/throughput-ceiling";
-import { detectCircadianAbsence, detectCircadianPresence } from "../detectors/circadian";
 
 describe("Feature: detectEstablishedContributorExemption", () => {
 	it("returns exemption flag when merged PRs and long-span repos both qualify", () => {
@@ -181,9 +234,22 @@ describe("Feature: detectEstablishedContributorExemption", () => {
 		const old = now.subtract(200, "day");
 		const events: GitHubEvent[] = [];
 		for (let i = 0; i < 8; i++) {
-			events.push({ type: "PullRequestEvent", payload: { action: "closed", pull_request: { merged: true } }, repo: { name: `org${i}/repo` }, created_at: old.toISOString() });
-			events.push({ type: "PushEvent", repo: { name: `org${i}/repo` }, created_at: old.toISOString() });
-			events.push({ type: "PushEvent", repo: { name: `org${i}/repo` }, created_at: now.toISOString() });
+			events.push({
+				type: "PullRequestEvent",
+				payload: { action: "closed", pull_request: { merged: true } },
+				repo: { name: `org${i}/repo` },
+				created_at: old.toISOString(),
+			});
+			events.push({
+				type: "PushEvent",
+				repo: { name: `org${i}/repo` },
+				created_at: old.toISOString(),
+			});
+			events.push({
+				type: "PushEvent",
+				repo: { name: `org${i}/repo` },
+				created_at: now.toISOString(),
+			});
 		}
 		const flags = detectEstablishedContributorExemption(events, "myaccount");
 		expect(flags.length).toBe(1);
@@ -195,7 +261,12 @@ describe("Feature: detectEstablishedContributorExemption", () => {
 		const now = dayjs().utc();
 		const events: GitHubEvent[] = [];
 		for (let i = 0; i < 8; i++) {
-			events.push({ type: "PullRequestEvent", payload: { action: "closed", pull_request: { merged: true } }, repo: { name: `org${i}/repo` }, created_at: now.toISOString() });
+			events.push({
+				type: "PullRequestEvent",
+				payload: { action: "closed", pull_request: { merged: true } },
+				repo: { name: `org${i}/repo` },
+				created_at: now.toISOString(),
+			});
 		}
 		const flags = detectEstablishedContributorExemption(events, "myaccount");
 		expect(flags).toEqual([]);
@@ -232,8 +303,14 @@ describe("Feature: detectInteractionDominance", () => {
 	it("returns flag when 60%+ of 20+ events are interactions across 2+ repos", () => {
 		const ts = new Date().toISOString();
 		const events: GitHubEvent[] = [];
-		for (let i = 0; i < 14; i++) events.push({ type: "IssueCommentEvent", repo: { name: i % 2 === 0 ? "org/repoA" : "org/repoB" }, created_at: ts });
-		for (let i = 0; i < 6; i++) events.push({ type: "PushEvent", created_at: ts });
+		for (let i = 0; i < 14; i++)
+			events.push({
+				type: "IssueCommentEvent",
+				repo: { name: i % 2 === 0 ? "org/repoA" : "org/repoB" },
+				created_at: ts,
+			});
+		for (let i = 0; i < 6; i++)
+			events.push({ type: "PushEvent", created_at: ts });
 		const flags = detectInteractionDominance(events);
 		expect(flags.length).toBe(1);
 		expect(flags[0].label).toBe("Interaction-focused contributor");
@@ -241,7 +318,10 @@ describe("Feature: detectInteractionDominance", () => {
 
 	it("returns [] when fewer than 20 events", () => {
 		const ts = new Date().toISOString();
-		const events: GitHubEvent[] = Array.from({ length: 15 }, () => ({ type: "IssueCommentEvent", created_at: ts }));
+		const events: GitHubEvent[] = Array.from({ length: 15 }, () => ({
+			type: "IssueCommentEvent",
+			created_at: ts,
+		}));
 		const flags = detectInteractionDominance(events);
 		expect(flags).toEqual([]);
 	});
@@ -276,7 +356,10 @@ describe("Feature: detectCircadianAbsence", () => {
 		const base = new Date("2024-01-01T00:00:00Z").getTime();
 		for (let h = 0; h < 24; h++) {
 			for (let j = 0; j < 3; j++) {
-				events.push({ type: "PushEvent", created_at: new Date(base + h * 3600000 + j * 1000).toISOString() });
+				events.push({
+					type: "PushEvent",
+					created_at: new Date(base + h * 3600000 + j * 1000).toISOString(),
+				});
 			}
 		}
 		const flags = detectCircadianAbsence(events);
@@ -289,7 +372,10 @@ describe("Feature: detectCircadianAbsence", () => {
 		const base = new Date("2024-01-01T00:00:00Z").getTime();
 		for (let h = 8; h < 22; h++) {
 			for (let j = 0; j < 4; j++) {
-				events.push({ type: "PushEvent", created_at: new Date(base + h * 3600000 + j * 1000).toISOString() });
+				events.push({
+					type: "PushEvent",
+					created_at: new Date(base + h * 3600000 + j * 1000).toISOString(),
+				});
 			}
 		}
 		const flags = detectCircadianAbsence(events);
@@ -304,7 +390,12 @@ describe("Feature: detectCircadianPresence", () => {
 			const dayBase = new Date(2024, 0, 1 + day, 0, 0, 0, 0).getTime();
 			for (let h = 8; h < 22; h++) {
 				for (let j = 0; j < 4; j++) {
-					events.push({ type: "PushEvent", created_at: new Date(dayBase + h * 3600000 + j * 1000).toISOString() });
+					events.push({
+						type: "PushEvent",
+						created_at: new Date(
+							dayBase + h * 3600000 + j * 1000,
+						).toISOString(),
+					});
 				}
 			}
 		}

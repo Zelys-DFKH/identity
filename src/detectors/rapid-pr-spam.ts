@@ -1,6 +1,6 @@
 import { CONFIG, LABEL_RAPID_PR_SPAM } from "../config";
 import type { GitHubEvent, IdentifyFlag } from "../types";
-import { isOpenedPR, groupByKey, selectByAccountAge } from "../utils";
+import { groupByKey, isOpenedPR, selectByAccountAge } from "../utils";
 
 export function detectRapidPRSpam(
 	events: GitHubEvent[],
@@ -8,7 +8,12 @@ export function detectRapidPRSpam(
 ): IdentifyFlag[] {
 	const flags: IdentifyFlag[] = [];
 
-	const minRapidPRs = selectByAccountAge(accountAge, CONFIG.AGE_ESTABLISHED_ACCOUNT, CONFIG.RAPID_PR_SPAM_MIN_PRS_ESTABLISHED, CONFIG.RAPID_PR_SPAM_MIN_PRS);
+	const minRapidPRs = selectByAccountAge(
+		accountAge,
+		CONFIG.AGE_ESTABLISHED_ACCOUNT,
+		CONFIG.RAPID_PR_SPAM_MIN_PRS_ESTABLISHED,
+		CONFIG.RAPID_PR_SPAM_MIN_PRS,
+	);
 
 	const prEvents = events.filter(isOpenedPR);
 

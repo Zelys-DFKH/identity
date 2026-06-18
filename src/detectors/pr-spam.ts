@@ -1,8 +1,14 @@
 import dayjs from "dayjs";
 import minMax from "dayjs/plugin/minMax";
-import { CONFIG, LABEL_DISTRIBUTED_PR_SPAM, LABEL_PR_SPAM_DAILY, LABEL_PR_SPAM_WEEKLY, LABEL_PR_SPAM_WEEKLY_HIGH } from "../config";
+import {
+	CONFIG,
+	LABEL_DISTRIBUTED_PR_SPAM,
+	LABEL_PR_SPAM_DAILY,
+	LABEL_PR_SPAM_WEEKLY,
+	LABEL_PR_SPAM_WEEKLY_HIGH,
+} from "../config";
 import type { GitHubEvent, IdentifyFlag } from "../types";
-import { isOpenedPR, filterByTimeWindow } from "../utils";
+import { filterByTimeWindow, isOpenedPR } from "../utils";
 
 dayjs.extend(minMax);
 
@@ -56,7 +62,12 @@ export function detectExtremeAndDistributedPRSpam(
 
 	// Distributed PR spam: high PR count across many repos (skip if time-based flag present)
 	if (allPREvents.length >= CONFIG.PRS_SPAM_VOLUME) {
-		const hasTimeBasedFlag = flags.some((f) => f.label === LABEL_PR_SPAM_DAILY || f.label === LABEL_PR_SPAM_WEEKLY || f.label === LABEL_PR_SPAM_WEEKLY_HIGH);
+		const hasTimeBasedFlag = flags.some(
+			(f) =>
+				f.label === LABEL_PR_SPAM_DAILY ||
+				f.label === LABEL_PR_SPAM_WEEKLY ||
+				f.label === LABEL_PR_SPAM_WEEKLY_HIGH,
+		);
 
 		if (!hasTimeBasedFlag) {
 			// Count distinct repos targeted by PRs
@@ -67,7 +78,9 @@ export function detectExtremeAndDistributedPRSpam(
 			);
 
 			if (prTargetRepos.size >= CONFIG.REPOS_SPAM_SPREAD) {
-				const sortedPRTimestamps = prTimestamps.slice().sort((a, b) => a.valueOf() - b.valueOf());
+				const sortedPRTimestamps = prTimestamps
+					.slice()
+					.sort((a, b) => a.valueOf() - b.valueOf());
 				const earliestPR = sortedPRTimestamps[0];
 				const latestPR = sortedPRTimestamps[sortedPRTimestamps.length - 1];
 				const timeSpanDays = latestPR
@@ -79,7 +92,12 @@ export function detectExtremeAndDistributedPRSpam(
 				const prsPerWeek =
 					timeSpanWeeks > 0 ? allPREvents.length / timeSpanWeeks : Infinity;
 
-				const prsInLast30Days = filterByTimeWindow(allPREvents, now, 30, "days").length;
+				const prsInLast30Days = filterByTimeWindow(
+					allPREvents,
+					now,
+					30,
+					"days",
+				).length;
 
 				// Flag if either:
 				// 1. High density (PRs per week exceeds threshold), OR

@@ -33,29 +33,37 @@ export function detectCircadianAbsence(events: GitHubEvent[]): IdentifyFlag[] {
 	const hist = buildHourHistogram(events);
 	const quiet = longestQuietBlock(hist, CONFIG.CIRCADIAN_QUIET_THRESHOLD);
 	if (quiet >= CONFIG.CIRCADIAN_QUIET_HOURS) return [];
-	return [{
-		label: "No circadian rest pattern",
-		points: CONFIG.POINTS_CIRCADIAN_ABSENCE,
-		amplifiable: true,
-		detail: `Longest quiet window is ${quiet}h (need ${CONFIG.CIRCADIAN_QUIET_HOURS}h)`,
-	}];
+	return [
+		{
+			label: "No circadian rest pattern",
+			points: CONFIG.POINTS_CIRCADIAN_ABSENCE,
+			amplifiable: true,
+			detail: `Longest quiet window is ${quiet}h (need ${CONFIG.CIRCADIAN_QUIET_HOURS}h)`,
+		},
+	];
 }
 
 // the flip side: a consistent rest window showing up across many days is a sleep schedule, not a suspicious pattern — credits that as a positive signal
 export function detectCircadianPresence(events: GitHubEvent[]): IdentifyFlag[] {
 	if (events.length < CONFIG.CIRCADIAN_MIN_EVENTS) return [];
 	const distinctDays = new Set(
-		events.filter((e) => e.created_at).map((e) => new Date(e.created_at!).toISOString().slice(0, 10)),
+		events
+			.filter((e) => e.created_at)
+			.map((e) => new Date(e.created_at as string).toISOString().slice(0, 10)),
 	).size;
 	if (distinctDays < CONFIG.CIRCADIAN_MIN_DAYS) return [];
 	const hist = buildHourHistogram(events);
-	const activeHours = hist.filter((c) => c > CONFIG.CIRCADIAN_QUIET_THRESHOLD).length;
+	const activeHours = hist.filter(
+		(c) => c > CONFIG.CIRCADIAN_QUIET_THRESHOLD,
+	).length;
 	if (activeHours < CONFIG.CIRCADIAN_MIN_ACTIVE_HOURS) return [];
 	const quiet = longestQuietBlock(hist, CONFIG.CIRCADIAN_QUIET_THRESHOLD);
 	if (quiet < CONFIG.CIRCADIAN_PRESENCE_MIN_HOURS) return [];
-	return [{
-		label: "Diurnal activity pattern",
-		points: CONFIG.POINTS_CIRCADIAN_PRESENCE,
-		detail: `${quiet}-hour contiguous low-activity window`,
-	}];
+	return [
+		{
+			label: "Diurnal activity pattern",
+			points: CONFIG.POINTS_CIRCADIAN_PRESENCE,
+			detail: `${quiet}-hour contiguous low-activity window`,
+		},
+	];
 }

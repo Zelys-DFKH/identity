@@ -2,7 +2,13 @@ import dayjs from "dayjs";
 import minMax from "dayjs/plugin/minMax";
 import { CONFIG } from "../config";
 import type { GitHubEvent, IdentifyFlag } from "../types";
-import { calculateNormalizedShannonsEntropy, getRepoOwner, isOpenedPR, filterByType, findMaxEventsInWindow } from "../utils";
+import {
+	calculateNormalizedShannonsEntropy,
+	filterByType,
+	findMaxEventsInWindow,
+	getRepoOwner,
+	isOpenedPR,
+} from "../utils";
 
 dayjs.extend(minMax);
 
@@ -182,7 +188,9 @@ export function detectYoungAccountActivity(
 
 	// External repo spread - Only count repos the user doesn't own, established OSS devs often contribute widely
 	const externalRepos = new Set(
-		events.filter((e) => e.repo?.name && getRepoOwner(e) !== userLogin).map((e) => e.repo?.name),
+		events
+			.filter((e) => e.repo?.name && getRepoOwner(e) !== userLogin)
+			.map((e) => e.repo?.name),
 	);
 
 	if (externalRepos.size >= CONFIG.REPO_SPREAD_EXTREME) {
