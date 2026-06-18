@@ -124,7 +124,8 @@ export function detectLongSpanEngagement(
 	}
 	let longSpanCount = 0;
 	for (const { first, last } of repoSpans.values()) {
-		if (msToDays(last - first) >= CONFIG.REPO_SPAN_MIN_DAYS) longSpanCount++;
+		const spanDays = msToDays(last - first);
+		if (spanDays > 0 && spanDays >= CONFIG.REPO_SPAN_MIN_DAYS) longSpanCount++;
 	}
 	const flag = tieredFlag(longSpanCount, `${longSpanCount} external repositories with ${CONFIG.REPO_SPAN_MIN_DAYS}+ day engagement span`, [
 		[CONFIG.REPO_SPAN_HIGH_COUNT, "Long-span engagement", CONFIG.POINTS_REPO_SPAN_HIGH],

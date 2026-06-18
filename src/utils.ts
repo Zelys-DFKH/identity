@@ -68,16 +68,17 @@ export function computeActivityRecencyMultiplier(
 	if (!Number.isFinite(halfLifeDays) || halfLifeDays <= 0) return 1;
 	const now = Date.now();
 	let total = 0;
+	let validCount = 0;
 	for (const e of events) {
 		const t = e.created_at ? new Date(e.created_at).getTime() : NaN;
 		if (!e.created_at || Number.isNaN(t)) {
-			total += 1;
 			continue;
 		}
+		validCount++;
 		const ageDays = Math.max(0, msToDays(now - t));
 		total += Math.exp((-Math.LN2 * ageDays) / halfLifeDays);
 	}
-	return total / events.length;
+	return validCount > 0 ? total / validCount : 1;
 }
 
 /** Sort array of Dayjs dates in ascending order. */

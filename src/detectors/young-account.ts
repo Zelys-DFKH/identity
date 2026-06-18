@@ -76,7 +76,8 @@ export function detectYoungAccountActivity(
 		const newestEvent = dayjs.max(timestamps);
 
 		if (newestEvent) {
-			const eventSpanDays = Math.max(1, newestEvent.diff(oldestEvent, "day"));
+			const spanDays = newestEvent.diff(oldestEvent, "day");
+			const eventSpanDays = spanDays > 0 ? spanDays : 1;
 			const prsPerDay = prEvents.length / eventSpanDays;
 
 			if (prsPerDay >= CONFIG.ACTIVITY_DENSITY_EXTREME / 2) {

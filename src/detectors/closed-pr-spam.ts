@@ -66,7 +66,7 @@ export function detectClosedPRSpam(
 	}
 
 	const prDensity = // PR density distinguishes bursts from scattered activity
-		fractionalDays > 0 ? closedPREvents.length / fractionalDays : closedPREvents.length;
+		fractionalDays > 0.01 ? closedPREvents.length / fractionalDays : closedPREvents.length;
 	const hasSignificantBurst = burstDays.length > 0; // at least one day with 10+ rejections
 	const enoughPRsForSpread = closedPREvents.length >= 25; // if 25+ PRs, even if scattered, it's suspicious
 	const highDensity = prDensity >= 0.5; // at least 1 PR every 2 days or more frequent
