@@ -41,8 +41,8 @@ export function detectReviewActivity(
 	events: GitHubEvent[],
 	accountName: string,
 ): IdentifyFlag[] {
-	const count = events.filter((e) => e.type === "PullRequestReviewEvent" && isExternalEvent(e, accountName)).length;
-	const flag = tieredFlag(count, `${count} PR reviews on external repositories`, [
+	const prReviews = events.filter((e) => e.type === "PullRequestReviewEvent" && isExternalEvent(e, accountName));
+	const flag = tieredFlag(prReviews.length, `${prReviews.length} PR reviews on external repositories`, [
 		[CONFIG.REVIEW_EVENTS_HIGH, "Active code reviewer", CONFIG.POINTS_REVIEW_ACTIVITY_HIGH],
 		[CONFIG.REVIEW_EVENTS_BASE, "Code reviewer", CONFIG.POINTS_REVIEW_ACTIVITY],
 	]);
@@ -53,8 +53,8 @@ export function detectReviewCommentActivity(
 	events: GitHubEvent[],
 	accountName: string,
 ): IdentifyFlag[] {
-	const count = events.filter((e) => e.type === "PullRequestReviewCommentEvent" && isExternalEvent(e, accountName)).length;
-	const flag = tieredFlag(count, `${count} inline review comments on external repositories`, [
+	const prComments = events.filter((e) => e.type === "PullRequestReviewCommentEvent" && isExternalEvent(e, accountName));
+	const flag = tieredFlag(prComments.length, `${prComments.length} inline review comments on external repositories`, [
 		[CONFIG.REVIEW_COMMENT_EVENTS_HIGH, "Inline review commenter", CONFIG.POINTS_REVIEW_COMMENTS_HIGH],
 		[CONFIG.REVIEW_COMMENT_EVENTS_BASE, "Inline review commenter", CONFIG.POINTS_REVIEW_COMMENTS],
 	]);

@@ -1,7 +1,7 @@
 import dayjs from "dayjs";
 import { CONFIG } from "../config";
 import type { GitHubEvent, IdentifyFlag } from "../types";
-import { isOpenedPR, sortByDate } from "../utils";
+import { isOpenedPR, sortByDate, groupByKey } from "../utils";
 
 export function detectBranchPRAutomation(
 	events: GitHubEvent[],
@@ -36,17 +36,7 @@ export function detectBranchPRAutomation(
 			const prTimes = sortByDate(prEvents
 				.map((e) => ({ event: e, time: dayjs(e.created_at) })));
 
-			// Group PRs by repository for repo-scoped matching
-			const prTimesByRepo = new Map<string, typeof prTimes>();
-			for (const prEntry of prTimes) {
-				const repoName = prEntry.event.repo?.name;
-				if (repoName) {
-					if (!prTimesByRepo.has(repoName)) {
-						prTimesByRepo.set(repoName, []);
-					}
-					prTimesByRepo.get(repoName)?.push(prEntry);
-				}
-			}
+			const prTimesByRepo = groupByKey(prEvents, (e) => e.repo?.name);
 
 			let matchedPairs = 0;
 			let maxObservedTimeDiff = 0;

@@ -1,7 +1,6 @@
-import dayjs from "dayjs";
 import { CONFIG, LABEL_RAPID_PR_SPAM } from "../config";
 import type { GitHubEvent, IdentifyFlag } from "../types";
-import { isOpenedPR, sortByDate } from "../utils";
+import { isOpenedPR, groupByKey } from "../utils";
 
 export function detectRapidPRSpam(
 	events: GitHubEvent[],
@@ -21,19 +20,7 @@ export function detectRapidPRSpam(
 		return flags;
 	}
 
-	const prTimes = sortByDate(prEvents
-		.map((e) => ({ event: e, time: dayjs(e.created_at) })));
-
-	const prsByRepo = new Map<string, typeof prTimes>();
-	for (const prEntry of prTimes) {
-		const repoName = prEntry.event.repo?.name;
-		if (repoName) {
-			if (!prsByRepo.has(repoName)) {
-				prsByRepo.set(repoName, []);
-			}
-			prsByRepo.get(repoName)?.push(prEntry);
-		}
-	}
+	const prsByRepo = groupByKey(prEvents, (e) => e.repo?.name);
 
 	let maxConsecutivePairs = 0;
 	let maxConsecutiveTimeDiff = 0;

@@ -82,11 +82,6 @@ export function sortByDate<T extends { time: ReturnType<typeof dayjs> }>(
 	return items.sort((a, b) => a.time.valueOf() - b.time.valueOf());
 }
 
-/** Sort array of Date objects in ascending order. */
-export function sortByDateValue(dates: Date[]): Date[] {
-	return dates.sort((a, b) => a.valueOf() - b.valueOf());
-}
-
 /** Convert milliseconds to days. */
 export function msToDays(ms: number): number {
 	return ms / (1000 * 60 * 60 * 24);
@@ -95,6 +90,28 @@ export function msToDays(ms: number): number {
 /** Calculate days between two timestamps in milliseconds. */
 export function daysBetween(msA: number, msB: number): number {
 	return msToDays(Math.abs(msA - msB));
+}
+
+/** Group items by a key function, mapping to arrays of {event, time}. */
+export function groupByKey<T extends { created_at?: string | null }>(
+	events: T[],
+	keyFn: (item: T) => string | undefined,
+): Map<string, Array<{ event: T; time: ReturnType<typeof dayjs> }>> {
+	const timestamped = events
+		.map((e) => ({ event: e, time: dayjs(e.created_at) }))
+		.sort((a, b) => a.time.valueOf() - b.time.valueOf());
+
+	const grouped = new Map<string, typeof timestamped>();
+	for (const entry of timestamped) {
+		const key = keyFn(entry.event);
+		if (key) {
+			if (!grouped.has(key)) {
+				grouped.set(key, []);
+			}
+			grouped.get(key)?.push(entry);
+		}
+	}
+	return grouped;
 }
 
 /** Find the densest burst of events within a time window. Maps timestamps to extracted keys; returns max key count in densest window. */
